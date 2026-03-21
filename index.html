@@ -1,0 +1,229 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8"/>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>Juliart NG — Bespoke Jewelry</title>
+
+  <!-- Favicon from real logo -->
+  <link rel="icon" type="image/png" href="{{ url_for('static', filename='images/logo.png') }}"/>
+
+  <!-- Fonts -->
+  <link rel="preconnect" href="https://fonts.googleapis.com"/>
+  <link href="https://fonts.googleapis.com/css2?family=Playfair+Display:ital,wght@0,400;0,600;0,700;1,400&family=Montserrat:wght@300;400;500;600&display=swap" rel="stylesheet"/>
+
+  <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}"/>
+</head>
+<body>
+
+<!-- ░░ HEADER ░░ -->
+<header class="site-header">
+  <div class="header-inner">
+
+    <!-- Logo -->
+    <a href="/" class="logo-wrap">
+      <img src="{{ url_for('static', filename='images/logo.png') }}"
+           alt="Juliart NG" class="logo-img"/>
+      <div class="logo-text">
+        <span class="logo-main">Juliart</span>
+        <span class="logo-sub">NG · Bespoke Jewelry</span>
+      </div>
+    </a>
+
+    <!-- Nav -->
+    <nav class="header-nav">
+      <a href="#gallery">Collection</a>
+      <a href="#about">Our Story</a>
+      {% if is_admin %}
+        <span class="admin-badge">✦ Curator Mode</span>
+        <a href="{{ url_for('exitglass') }}" class="exit-btn">Exit</a>
+      {% endif %}
+    </nav>
+
+  </div>
+  <div class="header-line"></div>
+</header>
+
+
+<!-- ░░ HERO ░░ -->
+<section class="hero">
+  <div class="hero-bg-ring r1"></div>
+  <div class="hero-bg-ring r2"></div>
+  <div class="hero-bg-ring r3"></div>
+  <div class="hero-content">
+    <p class="hero-eyebrow">Handcrafted Bead Accessories · Nigeria</p>
+    <h1 class="hero-title">Wear Something<br/><em>Made with Love</em></h1>
+    <p class="hero-sub">Premium handcrafted bead jewelry and accessories,<br/>made for every style and every occasion.</p>
+    <a href="#gallery" class="hero-cta">Explore Collection</a>
+  </div>
+</section>
+
+
+<!-- ░░ ADMIN PANEL (ghost — only visible in curator mode) ░░ -->
+{% if is_admin %}
+<section class="admin-panel">
+  <div class="admin-inner">
+    <h3 class="admin-title">✦ List a New Piece</h3>
+    <div class="admin-form">
+
+      <!-- Photo picker -->
+      <div class="upload-zone" id="uploadZone" onclick="triggerPicker()">
+        <input type="file" id="imagePicker" accept="image/*"
+               style="display:none" onchange="handlePick(this)"/>
+        <div id="uploadPlaceholder" class="upload-placeholder">
+          <span class="upload-cam">📷</span>
+          <span class="upload-hint">Tap to pick photo from gallery</span>
+        </div>
+        <img id="uploadPreview" class="upload-preview" style="display:none" alt="preview"/>
+        <div id="uploadBar" class="upload-bar-wrap" style="display:none">
+          <div class="upload-bar-fill" id="uploadFill"></div>
+          <span id="uploadStatus">Uploading…</span>
+        </div>
+      </div>
+
+      <input id="aName"  type="text"   placeholder="Piece name"            class="admin-input"/>
+      <input id="aPrice" type="number" placeholder="Price (₦)"             class="admin-input"/>
+      <input id="aCat"   type="text"   placeholder="Category  e.g. Rings"  class="admin-input"/>
+      <textarea id="aDesc" placeholder="Short description…"
+                class="admin-input admin-ta"></textarea>
+      <button class="admin-btn" onclick="adminAdd()">✦ &nbsp;List This Piece</button>
+
+    </div>
+  </div>
+</section>
+{% endif %}
+
+
+<!-- ░░ GALLERY ░░ -->
+<section class="gallery-section" id="gallery">
+  <div class="section-eyebrow">The Collection</div>
+  <h2 class="section-title">Curated Pieces</h2>
+
+  <div class="product-grid" id="productGrid">
+    {% if products %}
+      {% for p in products %}
+      <article class="product-card"
+               data-id="{{ p.id }}"
+               data-name="{{ p.name }}"
+               data-price="{{ p.price }}"
+               data-image="{{ p.image }}"
+               data-category="{{ p.category }}"
+               data-desc="{{ p.desc }}"
+               onclick="openTray(this)">
+        <div class="card-img-wrap">
+          <img src="{{ p.image }}" alt="{{ p.name }}"
+               loading="lazy" class="card-img"/>
+          <div class="card-overlay"></div>
+          {% if is_admin %}
+          <button class="delete-btn"
+                  onclick="deleteProduct(event,{{ p.id }})">✕</button>
+          {% endif %}
+        </div>
+        <div class="card-body">
+          <span class="card-cat">{{ p.category }}</span>
+          <h3 class="card-name">{{ p.name }}</h3>
+          <p class="card-price">₦{{ "{:,.0f}".format(p.price) }}</p>
+        </div>
+      </article>
+      {% endfor %}
+    {% else %}
+      <div class="empty-state">
+        <div class="empty-ornament">✦</div>
+        <p class="empty-title">The collection is being curated</p>
+        <p class="empty-sub">New pieces will appear here soon.<br/>Check back shortly.</p>
+      </div>
+    {% endif %}
+  </div>
+</section>
+
+
+<!-- ░░ ABOUT ░░ -->
+<section class="about-section" id="about">
+  <div class="about-inner">
+    <div class="about-ornament">✦ ✦ ✦</div>
+    <h2 class="about-title">Handcrafted with Beads</h2>
+    <p class="about-body">
+      Every piece in the Juliart NG collection is carefully handcrafted using
+      premium beads — from delicate bracelets and necklaces to bold statement
+      accessories. Each item is made with attention to detail, designed to
+      complement every style and occasion.
+    </p>
+    <p class="about-body">
+      To place an order or make an enquiry, tap any piece and send us a message
+      directly on WhatsApp. We'd love to hear from you.
+    </p>
+  </div>
+</section>
+
+
+<!-- ░░ VELVET TRAY ░░ -->
+<div class="tray-overlay" id="trayOverlay" onclick="closeTray()"></div>
+<aside class="velvet-tray" id="velvetTray">
+  <div class="tray-handle"></div>
+  <div class="tray-content">
+    <img src="" alt="" id="trayImg" class="tray-img"/>
+    <div class="tray-info">
+      <span class="tray-cat"   id="trayCat"></span>
+      <h2  class="tray-name"  id="trayName"></h2>
+      <p   class="tray-price" id="trayPrice"></p>
+      <p   class="tray-desc"  id="trayDesc"></p>
+      <div class="tray-actions">
+        <button class="t-btn t-add"    id="trayAdd"    onclick="cartAdd()">Add to Tray</button>
+        <button class="t-btn t-remove" id="trayRemove" onclick="cartRemove()">Remove</button>
+        <button class="t-btn t-close"  onclick="closeTray()">Close</button>
+      </div>
+    </div>
+  </div>
+</aside>
+
+
+<!-- ░░ FLOATING CHECKOUT BUTTON ░░ -->
+<div class="fab-wrap" id="fabWrap" style="display:none">
+  <button class="fab" onclick="openCheckout()">
+    <span class="fab-icon">🛍</span>
+    <span class="fab-badge" id="fabBadge">0</span>
+  </button>
+</div>
+
+
+<!-- ░░ CHECKOUT SHEET ░░ -->
+<div class="checkout-overlay" id="checkoutOverlay" onclick="closeCheckout()"></div>
+<div class="checkout-sheet"   id="checkoutSheet">
+  <div class="checkout-head">
+    <h3 class="checkout-title">Your Velvet Tray</h3>
+    <button class="checkout-x" onclick="closeCheckout()">✕</button>
+  </div>
+  <div class="checkout-items" id="checkoutItems"></div>
+  <div class="checkout-total-row">
+    <span>Total</span>
+    <strong id="checkoutTotal">₦0</strong>
+  </div>
+  <div class="checkout-actions">
+    <a id="waBtn" href="#" target="_blank" class="wa-btn">
+      <svg width="20" height="20" viewBox="0 0 24 24" fill="white">
+        <path d="M17.472 14.382c-.297-.149-1.758-.867-2.03-.967-.273-.099-.471-.148-.67.15-.197.297-.767.966-.94 1.164-.173.199-.347.223-.644.075-.297-.15-1.255-.463-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.298-.347.446-.52.149-.174.198-.298.298-.497.099-.198.05-.371-.025-.52-.075-.149-.669-1.612-.916-2.207-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.198 0-.52.074-.792.372-.272.297-1.04 1.016-1.04 2.479 0 1.462 1.065 2.875 1.213 3.074.149.198 2.096 3.2 5.077 4.487.709.306 1.262.489 1.694.625.712.227 1.36.195 1.871.118.571-.085 1.758-.719 2.006-1.413.248-.694.248-1.289.173-1.413-.074-.124-.272-.198-.57-.347m-5.421 7.403h-.004a9.87 9.87 0 01-5.031-1.378l-.361-.214-3.741.982.998-3.648-.235-.374a9.86 9.86 0 01-1.51-5.26c.001-5.45 4.436-9.884 9.888-9.884 2.64 0 5.122 1.03 6.988 2.898a9.825 9.825 0 012.893 6.994c-.003 5.45-4.437 9.884-9.885 9.884m8.413-18.297A11.815 11.815 0 0012.05 0C5.495 0 .16 5.335.157 11.892c0 2.096.547 4.142 1.588 5.945L.057 24l6.305-1.654a11.882 11.882 0 005.683 1.448h.005c6.554 0 11.89-5.335 11.893-11.893a11.821 11.821 0 00-3.48-8.413z"/>
+      </svg>
+      Order via WhatsApp
+    </a>
+    <p class="checkout-manual">No WhatsApp? <a id="smsBtn" href="#">Send as text message</a></p>
+    <button class="clear-btn" onclick="clearCart()">Clear Tray</button>
+  </div>
+</div>
+
+
+<!-- ░░ FOOTER ░░ -->
+<footer class="site-footer">
+  <img src="{{ url_for('static', filename='images/logo.png') }}"
+       alt="Juliart NG" class="footer-logo-img"/>
+  <p class="footer-tag">Bespoke Jewelry · Made in Nigeria · Shipped Worldwide</p>
+  <p class="footer-copy">© 2026 Juliart NG. All rights reserved.</p>
+</footer>
+
+
+<script>
+  const WHATSAPP = "{{ whatsapp }}";
+  const IS_ADMIN = {{ 'true' if is_admin else 'false' }};
+</script>
+<script src="{{ url_for('static', filename='js/app.js') }}"></script>
+</body>
+</html>

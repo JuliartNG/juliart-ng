@@ -1,0 +1,9 @@
+# DROP LOGO HERE
+# ─────────────────────────────────────────────
+# Place the Juliart NG logo image in this folder
+# and name it exactly:
+#
+#   logo.png
+#
+# That's it. The app will pick it up automatically.
+# ─────────────────────────────────────────────
