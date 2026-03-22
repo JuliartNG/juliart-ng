@@ -1,0 +1,193 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8"/>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>Juliart NG — Activity Vault</title>
+  <link rel="icon" type="image/png" href="/static/images/logo.png"/>
+  <link rel="preconnect" href="https://fonts.googleapis.com"/>
+  <link href="https://fonts.googleapis.com/css2?family=Playfair+Display:ital,wght@0,600;1,400&family=Montserrat:wght@300;400;500;600&display=swap" rel="stylesheet"/>
+  <style>
+    :root {
+      --bg:        #0f0805;
+      --bg-card:   #1a0f0d;
+      --gold:      #C9A96E;
+      --gold-lite: #E8D5B0;
+      --cream:     #FDFBF7;
+      --text:      #e8d5b0;
+      --text-dim:  #8d6e63;
+      --border:    rgba(201,169,110,0.15);
+      --green:     #2e7d32;
+      --red:       #c62828;
+    }
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+    body {
+      background: var(--bg);
+      color: var(--text);
+      font-family: 'Montserrat', sans-serif;
+      font-weight: 300;
+      min-height: 100vh;
+      animation: fadeIn 0.6s ease both;
+    }
+    @keyframes fadeIn {
+      from { opacity: 0; transform: translateY(10px); }
+      to   { opacity: 1; transform: translateY(0); }
+    }
+    .vault-header {
+      background: var(--bg-card);
+      border-bottom: 1px solid var(--border);
+      padding: 20px 24px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      position: sticky;
+      top: 0;
+      z-index: 10;
+    }
+    .vault-header-left { display: flex; align-items: center; gap: 14px; }
+    .vault-logo { width: 40px; height: 40px; object-fit: contain; }
+    .vault-title { font-family: 'Playfair Display', serif; font-size: 18px; color: var(--gold); }
+    .vault-sub { font-size: 10px; letter-spacing: 2px; text-transform: uppercase; color: var(--text-dim); margin-top: 2px; }
+    .vault-back {
+      text-decoration: none; font-size: 11px; letter-spacing: 1.5px;
+      text-transform: uppercase; color: var(--text-dim);
+      border: 1px solid var(--border); padding: 8px 16px;
+      border-radius: 4px; transition: all 0.3s;
+    }
+    .vault-back:hover { color: var(--gold); border-color: var(--gold); }
+    .stats-bar {
+      display: grid;
+      grid-template-columns: repeat(3, 1fr);
+      gap: 12px;
+      padding: 24px;
+      max-width: 900px;
+      margin: 0 auto;
+    }
+    .stat-card {
+      background: var(--bg-card);
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      padding: 16px;
+      text-align: center;
+    }
+    .stat-number { font-family: 'Playfair Display', serif; font-size: 28px; color: var(--gold); display: block; margin-bottom: 4px; }
+    .stat-label { font-size: 10px; letter-spacing: 2px; text-transform: uppercase; color: var(--text-dim); }
+    .logs-section { max-width: 900px; margin: 0 auto; padding: 0 24px 60px; }
+    .logs-title {
+      font-size: 10px; letter-spacing: 3px; text-transform: uppercase;
+      color: var(--text-dim); margin-bottom: 16px; padding-bottom: 10px;
+      border-bottom: 1px solid var(--border);
+    }
+    .log-card {
+      background: var(--bg-card);
+      border-radius: 8px;
+      margin-bottom: 10px;
+      border: 1px solid var(--border);
+      animation: cardIn 0.4s ease both;
+    }
+    @keyframes cardIn {
+      from { opacity: 0; transform: translateX(-8px); }
+      to   { opacity: 1; transform: translateX(0); }
+    }
+    .log-card.success { border-left: 3px solid var(--green); }
+    .log-card.failure { border-left: 3px solid var(--red); }
+    .log-card-inner {
+      padding: 14px 18px;
+      display: grid;
+      grid-template-columns: auto 1fr auto;
+      align-items: center;
+      gap: 14px;
+    }
+    .log-icon {
+      width: 36px; height: 36px; border-radius: 50%;
+      display: flex; align-items: center; justify-content: center;
+      font-size: 16px; flex-shrink: 0;
+    }
+    .success .log-icon { background: rgba(46,125,50,0.15); }
+    .failure .log-icon { background: rgba(198,40,40,0.15); }
+    .log-main { min-width: 0; }
+    .log-event { font-size: 13px; font-weight: 500; color: var(--cream); margin-bottom: 6px; line-height: 1.4; }
+    .log-meta { display: flex; flex-wrap: wrap; gap: 8px; }
+    .log-tag {
+      font-size: 10px; letter-spacing: 1px; padding: 3px 8px;
+      border-radius: 3px; background: rgba(201,169,110,0.08);
+      color: var(--text-dim); border: 1px solid var(--border);
+    }
+    .log-tag.ip-tag   { color: var(--gold); border-color: rgba(201,169,110,0.25); }
+    .log-tag.dev-tag  { color: #90caf9; border-color: rgba(144,202,249,0.2); }
+    .log-tag.brow-tag { color: #ce93d8; border-color: rgba(206,147,216,0.2); }
+    .log-time { font-size: 10px; color: var(--text-dim); text-align: right; white-space: nowrap; flex-shrink: 0; }
+    .log-time .date { display: block; margin-bottom: 2px; }
+    .log-time .time { color: var(--gold); font-size: 12px; font-weight: 500; }
+    .empty-vault { text-align: center; padding: 80px 24px; }
+    .empty-vault .ornament { font-size: 28px; letter-spacing: 10px; color: rgba(201,169,110,0.2); margin-bottom: 20px; }
+    .empty-vault p { color: var(--text-dim); font-size: 14px; }
+    @media (max-width: 480px) {
+      .log-card-inner { grid-template-columns: auto 1fr; }
+      .log-time { display: none; }
+      .stat-number { font-size: 22px; }
+    }
+  </style>
+</head>
+<body>
+  <header class="vault-header">
+    <div class="vault-header-left">
+      <img src="/static/images/logo.png" alt="Juliart" class="vault-logo"/>
+      <div>
+        <div class="vault-title">Activity Vault</div>
+        <div class="vault-sub">Juliart NG · Admin Eyes Only</div>
+      </div>
+    </div>
+    <a href="/" class="vault-back">← Store</a>
+  </header>
+
+  {% set total    = logs | length %}
+  {% set success  = logs | selectattr('success', 'equalto', true)  | list | length %}
+  {% set failures = logs | selectattr('success', 'equalto', false) | list | length %}
+
+  <div class="stats-bar">
+    <div class="stat-card">
+      <span class="stat-number">{{ total }}</span>
+      <span class="stat-label">Total Events</span>
+    </div>
+    <div class="stat-card">
+      <span class="stat-number" style="color:#a5d6a7">{{ success }}</span>
+      <span class="stat-label">Successful</span>
+    </div>
+    <div class="stat-card">
+      <span class="stat-number" style="color:#ef9a9a">{{ failures }}</span>
+      <span class="stat-label">Failed / Blocked</span>
+    </div>
+  </div>
+
+  <div class="logs-section">
+    <div class="logs-title">Recent Activity — Last 100 Events</div>
+    {% if logs %}
+      {% for log in logs %}
+      <div class="log-card {{ 'success' if log.success else 'failure' }}">
+        <div class="log-card-inner">
+          <div class="log-icon">{{ '✓' if log.success else '✗' }}</div>
+          <div class="log-main">
+            <div class="log-event">{{ log.event }}</div>
+            <div class="log-meta">
+              <span class="log-tag ip-tag">📍 {{ log.ip }}</span>
+              <span class="log-tag dev-tag">📱 {{ log.device }}</span>
+              <span class="log-tag brow-tag">🌐 {{ log.browser }}</span>
+            </div>
+          </div>
+          <div class="log-time">
+            <span class="date">{{ log.timestamp.strftime('%d %b %Y') }}</span>
+            <span class="time">{{ log.timestamp.strftime('%H:%M:%S') }}</span>
+          </div>
+        </div>
+      </div>
+      {% endfor %}
+    {% else %}
+      <div class="empty-vault">
+        <div class="ornament">✦</div>
+        <p>No activity recorded yet.</p>
+      </div>
+    {% endif %}
+  </div>
+</body>
+</html>
