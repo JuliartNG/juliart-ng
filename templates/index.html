@@ -4,14 +4,9 @@
   <meta charset="UTF-8"/>
   <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
   <title>Juliart NG — Bespoke Jewelry</title>
-
-  <!-- Favicon from real logo -->
   <link rel="icon" type="image/png" href="{{ url_for('static', filename='images/logo.png') }}"/>
-
-  <!-- Fonts -->
   <link rel="preconnect" href="https://fonts.googleapis.com"/>
   <link href="https://fonts.googleapis.com/css2?family=Playfair+Display:ital,wght@0,400;0,600;0,700;1,400&family=Montserrat:wght@300;400;500;600&display=swap" rel="stylesheet"/>
-
   <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}"/>
 </head>
 <body>
@@ -19,18 +14,13 @@
 <!-- ░░ HEADER ░░ -->
 <header class="site-header">
   <div class="header-inner">
-
-    <!-- Logo -->
     <a href="/" class="logo-wrap">
-      <img src="{{ url_for('static', filename='images/logo.png') }}"
-           alt="Juliart NG" class="logo-img"/>
+      <img src="{{ url_for('static', filename='images/logo.png') }}" alt="Juliart NG" class="logo-img"/>
       <div class="logo-text">
         <span class="logo-main">Juliart</span>
         <span class="logo-sub">NG · Bespoke Jewelry</span>
       </div>
     </a>
-
-    <!-- Nav -->
     <nav class="header-nav">
       <a href="#gallery">Collection</a>
       <a href="#about">Our Story</a>
@@ -39,7 +29,6 @@
         <a href="{{ url_for('exitglass') }}" class="exit-btn">Exit</a>
       {% endif %}
     </nav>
-
   </div>
   <div class="header-line"></div>
 </header>
@@ -59,11 +48,17 @@
 </section>
 
 
-<!-- ░░ ADMIN PANEL (ghost — only visible in curator mode) ░░ -->
+<!-- ░░ ADMIN PANEL ░░ -->
 {% if is_admin %}
 <section class="admin-panel">
   <div class="admin-inner">
-    <h3 class="admin-title">✦ List a New Piece</h3>
+
+    <!-- Admin top bar -->
+    <div class="admin-topbar">
+      <div class="admin-top-bar"><h3 class="admin-title">✦ List a New Piece</h3><a href="/showglass/vault" class="vault-link">📊 Activity Vault</a></div>
+      <a href="/showglass/vault" class="vault-link">📊 Activity Vault</a>
+    </div>
+
     <div class="admin-form">
 
       <!-- Photo picker -->
@@ -81,9 +76,9 @@
         </div>
       </div>
 
-      <input id="aName"  type="text"   placeholder="Piece name"            class="admin-input"/>
-      <input id="aPrice" type="number" placeholder="Price (₦)"             class="admin-input"/>
-      <input id="aCat"   type="text"   placeholder="Category  e.g. Rings"  class="admin-input"/>
+      <input id="aName"  type="text"   placeholder="Piece name"             class="admin-input"/>
+      <input id="aPrice" type="number" placeholder="Price (₦)"              class="admin-input"/>
+      <input id="aCat"   type="text"   placeholder="Category  e.g. Rings"   class="admin-input"/>
       <textarea id="aDesc" placeholder="Short description…"
                 class="admin-input admin-ta"></textarea>
       <button class="admin-btn" onclick="adminAdd()">✦ &nbsp;List This Piece</button>
@@ -111,12 +106,10 @@
                data-desc="{{ p.desc }}"
                onclick="openTray(this)">
         <div class="card-img-wrap">
-          <img src="{{ p.image }}" alt="{{ p.name }}"
-               loading="lazy" class="card-img"/>
+          <img src="{{ p.image }}" alt="{{ p.name }}" loading="lazy" class="card-img"/>
           <div class="card-overlay"></div>
           {% if is_admin %}
-          <button class="delete-btn"
-                  onclick="deleteProduct(event,{{ p.id }})">✕</button>
+          <button class="delete-btn" onclick="deleteProduct(event,{{ p.id }})">✕</button>
           {% endif %}
         </div>
         <div class="card-body">
@@ -146,7 +139,7 @@
       Every piece in the Juliart NG collection is carefully handcrafted using
       premium beads — from delicate bracelets and necklaces to bold statement
       accessories. Each item is made with attention to detail, designed to
-      complement every style and occasion.
+      complement every style and every occasion.
     </p>
     <p class="about-body">
       To place an order or make an enquiry, tap any piece and send us a message
@@ -226,4 +219,4 @@
 </script>
 <script src="{{ url_for('static', filename='js/app.js') }}"></script>
 </body>
-</html>
+  </html>
