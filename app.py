@@ -1,10 +1,9 @@
 from flask import Flask, render_template, request, redirect, url_for, session, jsonify
 from flask_sqlalchemy import SQLAlchemy
-from flask_mail import Mail, Message
 from flask_login import LoginManager, UserMixin, login_user, logout_user, login_required, current_user
 from werkzeug.security import generate_password_hash, check_password_hash
 from datetime import datetime, timedelta
-import os, uuid, cloudinary, cloudinary.uploader
+import os, uuid, cloudinary, cloudinary.uploader, resend
 
 app = Flask(__name__)
 app.secret_key = 'juliart-velvet-glass-2026-xK9#mP2'
@@ -19,18 +18,10 @@ cloudinary.config(
     api_secret = os.environ.get('CLOUDINARY_API_SECRET', 'tEtP9KnoM_AgbLId4vdcL-Z3qY4')
 )
 
-# ── Mail ──────────────────────────────────────────────────────────────────────
-app.config['MAIL_SERVER']   = 'smtp.gmail.com'
-app.config['MAIL_PORT']     = 587
-app.config['MAIL_USE_TLS']  = True
-app.config['MAIL_USERNAME'] = os.environ.get('MAIL_USERNAME', 'beadsandmore007@gmail.com')
-app.config['MAIL_PASSWORD'] = os.environ.get('MAIL_PASSWORD', 'moxj dnnq ymfo iybq')
-app.config['MAIL_DEFAULT_SENDER'] = ('Juliart NG', os.environ.get('MAIL_USERNAME', 'beadsandmore007@gmail.com'))
+# ── Resend ────────────────────────────────────────────────────────────────────
+resend.api_key = os.environ.get('RESEND_API_KEY', 're_bzAXoTi8_Pyxrj528VQqCED826YSFMPbU')
 
-db   = SQLAlchemy(app)
-mail = Mail(app)
-
-# ── Flask-Login ───────────────────────────────────────────────────────────────
+db           = SQLAlchemy(app)
 login_manager = LoginManager(app)
 login_manager.login_view = 'customer_login'
 
@@ -43,7 +34,8 @@ class Customer(UserMixin, db.Model):
     verified      = db.Column(db.Boolean, default=False)
     verify_token  = db.Column(db.String(64), nullable=True)
     created_at    = db.Column(db.DateTime, default=datetime.utcnow)
-    wishlist      = db.relationship('WishlistItem', backref='customer', lazy=True, cascade='all, delete-orphan')
+    wishlist      = db.relationship('WishlistItem', backref='customer', lazy=True,
+                                    cascade='all, delete-orphan')
 
 class WishlistItem(db.Model):
     id          = db.Column(db.Integer, primary_key=True)
@@ -82,7 +74,7 @@ class LoginAttempt(db.Model):
     ip        = db.Column(db.String(60))
     timestamp = db.Column(db.DateTime, default=datetime.utcnow)
 
-# ── Flask-Login loader ────────────────────────────────────────────────────────
+# ── Flask-Login ───────────────────────────────────────────────────────────────
 @login_manager.user_loader
 def load_user(user_id):
     return Customer.query.get(int(user_id))
@@ -144,10 +136,12 @@ def is_blocked(ip):
     ).count() >= 5
 
 def record_failed_attempt(ip):
-    db.session.add(LoginAttempt(ip=ip)); db.session.commit()
+    db.session.add(LoginAttempt(ip=ip))
+    db.session.commit()
 
 def clear_attempts(ip):
-    LoginAttempt.query.filter_by(ip=ip).delete(); db.session.commit()
+    LoginAttempt.query.filter_by(ip=ip).delete()
+    db.session.commit()
 
 def purge_expired_soldout():
     cutoff  = datetime.utcnow() - timedelta(days=7)
@@ -157,7 +151,8 @@ def purge_expired_soldout():
     ).all()
     for p in expired:
         db.session.delete(p)
-    if expired: db.session.commit()
+    if expired:
+        db.session.commit()
 
 def product_to_dict(p):
     images = [i for i in [p.image1, p.image2, p.image3, p.image4] if i]
@@ -173,6 +168,42 @@ def get_customer_wishlist():
     if current_user.is_authenticated:
         return [str(w.product_id) for w in current_user.wishlist]
     return []
+
+def send_verification_email(name, email, token):
+    verify_url = url_for('verify_email', token=token, _external=True)
+    try:
+        resend.Emails.send({
+            'from':    'Juliart NG <onboarding@resend.dev>',
+            'to':      [email],
+            'subject': 'Verify your Juliart NG account',
+            'html': f'''
+            <div style="font-family:Georgia,serif;max-width:520px;margin:0 auto;
+                        padding:48px 32px;background:#FDFBF7;border-radius:12px;">
+              <h2 style="font-family:Georgia,serif;color:#3E2723;
+                         text-align:center;margin-bottom:8px;">
+                Welcome to Juliart NG, {name}!
+              </h2>
+              <p style="color:#8D6E63;text-align:center;font-size:14px;
+                        line-height:1.7;margin-bottom:32px;">
+                Thank you for creating an account. Please verify your
+                email address to get started.
+              </p>
+              <a href="{verify_url}"
+                 style="display:block;background:#3E2723;color:#FDFBF7;
+                        text-decoration:none;text-align:center;padding:16px;
+                        border-radius:6px;font-size:12px;letter-spacing:2px;
+                        text-transform:uppercase;margin-bottom:24px;">
+                Verify My Account
+              </a>
+              <p style="color:#8D6E63;text-align:center;font-size:11px;">
+                If you didn't create this account, you can safely ignore this email.
+              </p>
+            </div>'''
+        })
+        return True
+    except Exception as e:
+        print(f'Email error: {e}')
+        return False
 
 def seed_categories():
     defaults = ['Waistbeads','Anklets','Bracelets','Neckpiece',
@@ -227,39 +258,18 @@ def register():
             db.session.add(customer)
             db.session.commit()
 
-            # Send verification email
-            verify_url = url_for('verify_email', token=token, _external=True)
-            try:
-                msg = Message('Verify your Juliart NG account',
-                              recipients=[email])
-                msg.html = f'''
-                <div style="font-family:Georgia,serif;max-width:500px;margin:0 auto;padding:40px 24px;background:#FDFBF7;border-radius:12px;">
-                  <img src="https://res.cloudinary.com/dktxicogl/image/upload/juliart_logo" 
-                       style="width:60px;margin:0 auto 20px;display:block" alt="Juliart NG"/>
-                  <h2 style="font-family:Georgia,serif;color:#3E2723;text-align:center;margin-bottom:10px">
-                    Welcome to Juliart NG, {name}!
-                  </h2>
-                  <p style="color:#8D6E63;text-align:center;font-size:14px;margin-bottom:30px">
-                    Please verify your email address to activate your account.
-                  </p>
-                  <a href="{verify_url}" 
-                     style="display:block;background:#3E2723;color:#FDFBF7;text-decoration:none;
-                            text-align:center;padding:16px;border-radius:6px;font-size:13px;
-                            letter-spacing:2px;text-transform:uppercase">
-                    Verify My Account
-                  </a>
-                  <p style="color:#8D6E63;text-align:center;font-size:11px;margin-top:20px">
-                    If you didn't create this account, ignore this email.
-                  </p>
-                </div>'''
-                mail.send(msg)
-                log_event(f'New customer registered: {email}')
-                return render_template('auth.html',
-                    page='check_email', email=email)
-            except Exception as e:
-                db.session.delete(customer)
+            sent = send_verification_email(name, email, token)
+            log_event(f'New customer registered: {email}')
+
+            if sent:
+                return render_template('auth.html', page='check_email', email=email)
+            else:
+                # Email failed but account created — auto verify for now
+                customer.verified     = True
+                customer.verify_token = None
                 db.session.commit()
-                error = 'Could not send verification email. Please try again.'
+                login_user(customer)
+                return redirect(url_for('index'))
 
     return render_template('auth.html', page='register', error=error)
 
@@ -272,7 +282,7 @@ def verify_email(token):
     customer.verify_token = None
     db.session.commit()
     login_user(customer)
-    log_event(f'Customer verified and logged in: {customer.email}')
+    log_event(f'Customer verified: {customer.email}')
     return redirect(url_for('index'))
 
 @app.route('/login', methods=['GET', 'POST'])
@@ -284,6 +294,7 @@ def customer_login():
         email    = request.form.get('email', '').strip().lower()
         password = request.form.get('password', '')
         customer = Customer.query.filter_by(email=email).first()
+
         if not customer or not check_password_hash(customer.password_hash, password):
             error = 'Incorrect email or password.'
             log_event(f'Failed customer login: {email}', success=False)
@@ -293,6 +304,7 @@ def customer_login():
             login_user(customer, remember=True)
             log_event(f'Customer logged in: {email}')
             return redirect(url_for('index'))
+
     return render_template('auth.html', page='login', error=error)
 
 @app.route('/logout')
@@ -487,8 +499,7 @@ def cart_clear():
     return jsonify({'ok': True})
 
 @app.route('/cart')
-def cart_data():
-    cart     = session.get('cart', {})
+def cart     = session.get('cart', {})
     products = {str(p.id): p for p in Product.query.all()}
     items, total = [], 0
     for pid, qty in cart.items():
