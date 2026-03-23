@@ -138,7 +138,7 @@
       {% endfor %}
     </div>
     {% if is_admin %}
-    <button class="cat-add-fab" onclick="openAddCat()">＋</button>
+    <button class="cat-add-fab" onclick="openCatManager()">＋</button>
     {% endif %}
   </div>
 
@@ -216,20 +216,18 @@
 </section>
 
 
-<!-- ░░ CATEGORY MENU POPUP ░░ -->
-<div class="cat-menu-popup" id="catMenuPopup">
-  <button onclick="openEditCat()">✏️ &nbsp;Edit Name</button>
-  <button onclick="confirmDeleteCat()" class="cat-menu-delete">🗑 &nbsp;Delete</button>
-</div>
-
-<!-- ░░ CATEGORY INPUT POPUP ░░ -->
-<div class="cat-input-overlay" id="catInputOverlay" onclick="closeCatInput()"></div>
-<div class="cat-input-popup"   id="catInputPopup">
-  <h4 id="catInputTitle">Add Category</h4>
-  <input type="text" id="catInputField" class="cat-input-field" placeholder="Category name…"/>
-  <div class="cat-input-btns">
-    <button class="cat-input-cancel"  onclick="closeCatInput()">Cancel</button>
-    <button class="cat-input-confirm" id="catInputConfirm" onclick="confirmCatInput()">Add</button>
+<!-- ░░ CATEGORY MANAGER POPUP ░░ -->
+<div class="cat-manager-overlay" id="catManagerOverlay" onclick="closeCatManager()"></div>
+<div class="cat-manager-popup"   id="catManagerPopup">
+  <div class="cat-manager-head">
+    <h4>Categories</h4>
+    <button onclick="closeCatManager()">✕</button>
+  </div>
+  <div class="cat-manager-list" id="catManagerList"></div>
+  <div class="cat-manager-divider">Add New Category</div>
+  <div class="cat-manager-add-row">
+    <input type="text" id="newCatInput" placeholder="e.g. Hair Accessories"/>
+    <button onclick="addCategoryFromManager()">Add</button>
   </div>
 </div>
 
@@ -344,4 +342,4 @@
 </script>
 <script src="{{ url_for('static', filename='js/app.js') }}"></script>
 </body>
-  </html>
+</html>                                                                                            </html
