@@ -7,7 +7,7 @@ import os, uuid, cloudinary, cloudinary.uploader, resend
 
 app = Flask(__name__)
 app.secret_key = 'juliart-velvet-glass-2026-xK9#mP2'
-app.config['SQLALCHEMY_DATABASE_URI'] = os.environ.get('DATABASE_URL', 'sqlite:///juliart.db').replace('postgres://', 'postgresql://')
+app.config['SQLALCHEMY_DATABASE_URI'] = os.environ.get('DATABASE_URL', 'sqlite:///juliart.db').replace('postgres://', 'postgresql+pg8000://').replace('postgresql://', 'postgresql+pg8000://')
 app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
 app.config['PERMANENT_SESSION_LIFETIME'] = timedelta(minutes=30)
 
