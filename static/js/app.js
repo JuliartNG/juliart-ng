@@ -1,23 +1,19 @@
 /* ═══════════════════════════════════════════════════
    JULIART NG — App Logic 2026
-   Gallery · Cart · Tray · Wishlist · Search · Filter · Admin
    ═══════════════════════════════════════════════════ */
 'use strict';
 
 // ── State ──────────────────────────────────────────────────────────────────
-let currentProduct  = null;
-let cartState       = { items: [], total: 0, count: 0 };
-let galleryImages   = [];
-let galleryIndex    = 0;
-let uploadedUrls    = { 1: null, 2: null, 3: null, 4: null };
-let wishlist        = JSON.parse(localStorage.getItem('juliart_wish') || '[]');
-let activeCat       = 'all';
-let searchTerm      = '';
+let currentProduct = null;
+let cartState      = { items: [], total: 0, count: 0 };
+let galleryImages  = [];
+let galleryIndex   = 0;
+let uploadedUrls   = { 1: null, 2: null, 3: null, 4: null };
+let activeCat      = 'all';
 
 // ── Boot ───────────────────────────────────────────────────────────────────
 document.addEventListener('DOMContentLoaded', () => {
   refreshCart();
-  syncAllWishButtons();
   updateWishlistNav();
 });
 
@@ -29,7 +25,7 @@ async function refreshCart() {
     const res = await fetch('/cart');
     cartState = await res.json();
     updateFAB(cartState.count);
-  } catch(e) { console.error(e); }
+  } catch(e) {}
 }
 
 async function cartAdd() {
@@ -71,21 +67,21 @@ function filterCat(btn, cat) {
 }
 
 function filterProducts() {
-  searchTerm = document.getElementById('searchInput').value.toLowerCase().trim();
   applyFilters();
 }
 
 function applyFilters() {
+  const search  = (document.getElementById('searchInput').value || '').toLowerCase().trim();
   const cards   = document.querySelectorAll('.product-card');
   let   visible = 0;
 
   cards.forEach(card => {
-    const name = card.dataset.name.toLowerCase();
-    const cat  = card.dataset.category;
-    const matchSearch = !searchTerm || name.includes(searchTerm);
-    const matchCat    = activeCat === 'all' || cat === activeCat;
+    const name     = (card.dataset.name || '').toLowerCase();
+    const cat      = card.dataset.category || '';
+    const matchS   = !search || name.includes(search);
+    const matchC   = activeCat === 'all' || cat === activeCat;
 
-    if (matchSearch && matchCat) {
+    if (matchS && matchC) {
       card.style.display = '';
       visible++;
     } else {
@@ -94,13 +90,11 @@ function applyFilters() {
   });
 
   const noRes = document.getElementById('noResults');
-  const empty = document.getElementById('emptyState');
   if (noRes) {
-    noRes.style.display = visible === 0 && cards.length > 0 ? 'block' : 'none';
+    noRes.style.display = (visible === 0 && cards.length > 0) ? 'block' : 'none';
     const st = document.getElementById('searchTerm');
-    if (st) st.textContent = searchTerm || activeCat;
+    if (st) st.textContent = search || activeCat;
   }
-  if (empty) empty.style.display = cards.length === 0 ? 'block' : 'none';
 }
 
 // ══════════════════════════════════════════════════════════════════════════
@@ -108,8 +102,9 @@ function applyFilters() {
 // ══════════════════════════════════════════════════════════════════════════
 function openTray(el) {
   let images = [];
-  try { images = JSON.parse(el.dataset.images || '[]'); } catch(e) { images = []; }
-  if (!images.length && el.dataset.image) images = [el.dataset.image];
+  try { images = JSON.parse(el.dataset.images || '[]'); } catch(e) {}
+  images = images.filter(Boolean);
+  if (!images.length) return;
 
   currentProduct = {
     id:       el.dataset.id,
@@ -150,24 +145,26 @@ function syncTrayButtons() {
   const wishBtn = document.getElementById('trayWish');
 
   if (currentProduct.soldOut) {
-    addBtn.style.display    = 'block';
-    addBtn.disabled         = true;
-    notice.style.display    = 'block';
-    remBtn.style.display    = 'none';
+    addBtn.style.display = 'block';
+    addBtn.disabled      = true;
+    notice.style.display = 'block';
+    remBtn.style.display = 'none';
   } else {
-    addBtn.disabled         = false;
-    notice.style.display    = 'none';
-    addBtn.style.display    = inCart ? 'none'  : 'block';
-    remBtn.style.display    = inCart ? 'block' : 'none';
+    addBtn.disabled      = false;
+    notice.style.display = 'none';
+    addBtn.style.display = inCart ? 'none'  : 'block';
+    remBtn.style.display = inCart ? 'block' : 'none';
   }
 
-  const wished = wishlist.includes(String(currentProduct.id));
+  // Sync wish button
+  const wishCard = document.querySelector(`.wish-btn[data-id="${currentProduct.id}"]`);
+  const wished   = wishCard ? wishCard.classList.contains('wished') : false;
   wishBtn.textContent = wished ? '♥ Saved' : '♡ Save';
   wishBtn.classList.toggle('wished', wished);
 }
 
 // ══════════════════════════════════════════════════════════════════════════
-//  GALLERY SWIPE
+//  IMAGE GALLERY — FIXED
 // ══════════════════════════════════════════════════════════════════════════
 function buildGallery(images) {
   galleryImages = images;
@@ -175,25 +172,41 @@ function buildGallery(images) {
 
   const track = document.getElementById('trayTrack');
   const dots  = document.getElementById('trayDots');
-  const prev  = document.getElementById('trayPrev');
-  const next  = document.getElementById('trayNext');
+  const prev  = document.querySelector('.tray-prev');
+  const next  = document.querySelector('.tray-next');
 
-  track.innerHTML = images.map(src =>
-    `<img src="${src}" alt="product photo" loading="lazy"/>`
-  ).join('');
+  // Build slides
+  track.innerHTML = '';
+  images.forEach(src => {
+    const img = document.createElement('img');
+    img.src   = src;
+    img.alt   = 'product photo';
+    img.style.cssText = 'width:100%;flex-shrink:0;object-fit:cover;';
+    track.appendChild(img);
+  });
 
-  dots.innerHTML = images.length > 1 ? images.map((_, i) =>
-    `<div class="tray-dot ${i === 0 ? 'active' : ''}" onclick="goToSlide(${i})"></div>`
-  ).join('') : '';
+  // Build dots
+  dots.innerHTML = '';
+  if (images.length > 1) {
+    images.forEach((_, i) => {
+      const dot = document.createElement('div');
+      dot.className = 'tray-dot' + (i === 0 ? ' active' : '');
+      dot.onclick   = () => goToSlide(i);
+      dots.appendChild(dot);
+    });
+  }
 
-  prev.style.display = images.length > 1 ? 'flex' : 'none';
-  next.style.display = images.length > 1 ? 'flex' : 'none';
+  // Show/hide arrows
+  const showArrows = images.length > 1;
+  if (prev) prev.style.display = showArrows ? 'flex' : 'none';
+  if (next) next.style.display = showArrows ? 'flex' : 'none';
 
   updateGalleryPosition();
 }
 
 function updateGalleryPosition() {
-  document.getElementById('trayTrack').style.transform = `translateX(-${galleryIndex * 100}%)`;
+  const track = document.getElementById('trayTrack');
+  if (track) track.style.transform = `translateX(-${galleryIndex * 100}%)`;
   document.querySelectorAll('.tray-dot').forEach((d, i) =>
     d.classList.toggle('active', i === galleryIndex)
   );
@@ -219,84 +232,95 @@ function goToSlide(i) {
 // ══════════════════════════════════════════════════════════════════════════
 //  WISHLIST
 // ══════════════════════════════════════════════════════════════════════════
-function toggleWish(e, pid) {
-  e.stopPropagation();
-  const id  = String(pid);
-  const idx = wishlist.indexOf(id);
-  if (idx === -1) {
-    wishlist.push(id);
-  } else {
-    wishlist.splice(idx, 1);
-  }
-  localStorage.setItem('juliart_wish', JSON.stringify(wishlist));
-  syncAllWishButtons();
-  updateWishlistNav();
-}
-
-function toggleWishTray() {
-  if (!currentProduct) return;
-  toggleWish({ stopPropagation: () => {} }, currentProduct.id);
-  syncTrayButtons();
-}
-
-function syncAllWishButtons() {
-  document.querySelectorAll('.wish-btn').forEach(btn => {
-    const id = String(btn.dataset.id);
-    btn.classList.toggle('wished', wishlist.includes(id));
-    btn.textContent = wishlist.includes(id) ? '♥' : '♡';
-  });
-}
-
 function updateWishlistNav() {
   const btn   = document.getElementById('wishlistNavBtn');
   const count = document.getElementById('wishlistCount');
-  if (!btn) return;
-  btn.style.display   = wishlist.length > 0 ? 'flex' : 'none';
-  count.textContent   = wishlist.length;
+  if (!btn || !IS_LOGGEDIN) return;
+  // Count wished items from DOM
+  const wishedCount = document.querySelectorAll('.wish-btn.wished').length;
+  count.textContent = wishedCount;
 }
 
-function openWishlist() {
-  const container = document.getElementById('wishlistItems');
-  const cards     = document.querySelectorAll('.product-card');
-  const map       = {};
-  cards.forEach(c => { map[c.dataset.id] = c; });
+async function toggleWish(e, pid) {
+  e.stopPropagation();
 
-  if (wishlist.length === 0) {
-    container.innerHTML = '<div class="wish-empty">No saved pieces yet.<br/>Tap ♡ on any piece to save it.</div>';
-  } else {
-    container.innerHTML = wishlist.map(id => {
-      const c = map[id];
-      if (!c) return '';
-      let images = [];
-      try { images = JSON.parse(c.dataset.images || '[]'); } catch(e) {}
-      const img = images[0] || '';
-      return `
-        <div class="wish-item">
-          <img src="${img}" alt="${c.dataset.name}" onclick="closeWishlist();openTray(document.querySelector('.product-card[data-id=\\'${id}\\']'))"/>
-          <div class="wish-item-info">
-            <div class="wish-item-name">${c.dataset.name}</div>
-            <div class="wish-item-price">₦${fmt(parseFloat(c.dataset.price))}</div>
-          </div>
-          <button class="wish-remove" onclick="toggleWish(event,${id});renderWishlistItems()">✕</button>
-        </div>`;
-    }).join('');
+  if (!IS_LOGGEDIN) {
+    openLoginPrompt();
+    return;
   }
+
+  const res = await fetch(`/wishlist/toggle/${pid}`, { method: 'POST' });
+  if (res.ok) {
+    const data = await res.json();
+    const btn  = document.querySelector(`.wish-btn[data-id="${pid}"]`);
+    if (btn) {
+      btn.classList.toggle('wished', data.wishlisted);
+      btn.textContent = data.wishlisted ? '♥' : '♡';
+    }
+    updateWishlistNav();
+    // sync tray wish button if open
+    if (currentProduct && String(currentProduct.id) === String(pid)) {
+      const wishBtn = document.getElementById('trayWish');
+      if (wishBtn) {
+        wishBtn.textContent = data.wishlisted ? '♥ Saved' : '♡ Save';
+        wishBtn.classList.toggle('wished', data.wishlisted);
+      }
+    }
+  }
+}
+
+async function toggleWishTray() {
+  if (!currentProduct) return;
+  await toggleWish({ stopPropagation: () => {} }, currentProduct.id);
+}
+
+async function openWishlist() {
+  const container = document.getElementById('wishlistItems');
+  container.innerHTML = '<p style="color:var(--brown-lite);padding:20px 0;font-size:14px">Loading…</p>';
 
   document.getElementById('wishlistOverlay').classList.add('open');
   document.getElementById('wishlistSheet').classList.add('open');
   document.body.style.overflow = 'hidden';
-}
 
-function renderWishlistItems() {
-  updateWishlistNav();
-  syncAllWishButtons();
-  openWishlist();
+  try {
+    const res     = await fetch('/wishlist');
+    const products = await res.json();
+
+    if (!products.length) {
+      container.innerHTML = '<div class="wish-empty">No saved pieces yet.<br/>Tap ♡ on any piece to save it.</div>';
+      return;
+    }
+
+    container.innerHTML = products.map(p => `
+      <div class="wish-item" onclick="closeWishlist();setTimeout(()=>{
+        const c=document.querySelector('.product-card[data-id=\\'${p.id}\\']');
+        if(c)openTray(c);},300)">
+        <img src="${p.image}" alt="${p.name}"/>
+        <div class="wish-item-info">
+          <div class="wish-item-name">${p.name}</div>
+          <div class="wish-item-price">₦${fmt(p.price)}</div>
+        </div>
+        <button class="wish-remove" onclick="event.stopPropagation();toggleWish(event,${p.id}).then(()=>openWishlist())">✕</button>
+      </div>`).join('');
+  } catch(e) {
+    container.innerHTML = '<p style="color:#c62828;padding:20px 0;font-size:13px">Could not load wishlist.</p>';
+  }
 }
 
 function closeWishlist() {
   document.getElementById('wishlistOverlay').classList.remove('open');
   document.getElementById('wishlistSheet').classList.remove('open');
   document.body.style.overflow = '';
+}
+
+// Login prompt for non-logged-in users trying to wish
+function openLoginPrompt() {
+  document.getElementById('loginPromptOverlay').classList.add('open');
+  document.getElementById('loginPromptPopup').classList.add('open');
+}
+function closeLoginPrompt() {
+  document.getElementById('loginPromptOverlay').classList.remove('open');
+  document.getElementById('loginPromptPopup').classList.remove('open');
 }
 
 // ══════════════════════════════════════════════════════════════════════════
@@ -364,7 +388,6 @@ async function handleSlot(n, input) {
   const file = input.files[0];
   if (!file) return;
 
-  // Preview
   const reader = new FileReader();
   reader.onload = e => {
     const prev = document.getElementById(`prev${n}`);
@@ -374,7 +397,6 @@ async function handleSlot(n, input) {
   };
   reader.readAsDataURL(file);
 
-  // Upload
   const status = document.getElementById(`status${n}`);
   status.textContent = 'Uploading…';
   status.classList.add('show');
@@ -383,10 +405,10 @@ async function handleSlot(n, input) {
   form.append('image', file);
 
   try {
-    const res  = await fetch('/admin/upload', { method: 'POST', body: form });
+    const res = await fetch('/admin/upload', { method: 'POST', body: form });
     if (res.ok) {
-      const data        = await res.json();
-      uploadedUrls[n]   = data.url;
+      const data      = await res.json();
+      uploadedUrls[n] = data.url;
       status.textContent = '✓ Ready';
     } else {
       status.textContent = '✗ Failed';
@@ -407,8 +429,8 @@ async function adminAdd() {
   const cat   = document.getElementById('aCat').value;
   const desc  = document.getElementById('aDesc').value.trim();
 
-  if (!name)           { alert('Please enter the piece name.');   return; }
-  if (!price || price <= 0) { alert('Please enter a valid price.'); return; }
+  if (!name)                { alert('Please enter the piece name.');   return; }
+  if (!price || price <= 0) { alert('Please enter a valid price.');    return; }
 
   const res = await fetch('/admin/add', {
     method:  'POST',
@@ -438,15 +460,12 @@ function resetAdminForm() {
     const prev = document.getElementById(`prev${n}`);
     prev.style.display = 'none'; prev.src = '';
     document.querySelector(`#slot${n} .slot-placeholder`).style.display = 'flex';
-    const status = document.getElementById(`status${n}`);
-    status.textContent = ''; status.classList.remove('show');
+    const st = document.getElementById(`status${n}`);
+    st.textContent = ''; st.classList.remove('show');
     uploadedUrls[n] = null;
   });
 }
 
-// ══════════════════════════════════════════════════════════════════════════
-//  GHOST ADMIN — INJECT CARD
-// ══════════════════════════════════════════════════════════════════════════
 function injectCard(p) {
   const empty = document.querySelector('.empty-state');
   if (empty) empty.remove();
@@ -486,7 +505,7 @@ function injectCard(p) {
 }
 
 // ══════════════════════════════════════════════════════════════════════════
-//  GHOST ADMIN — SOLD OUT TOGGLE
+//  GHOST ADMIN — SOLD OUT & DELETE
 // ══════════════════════════════════════════════════════════════════════════
 async function toggleSoldOut(e, pid, btn) {
   e.stopPropagation();
@@ -498,9 +517,7 @@ async function toggleSoldOut(e, pid, btn) {
       card.dataset.soldout = data.sold_out ? 'true' : 'false';
       card.classList.toggle('sold-out-card', data.sold_out);
       btn.textContent = data.sold_out ? 'Mark Available' : 'Mark Sold Out';
-
-      // Update badge
-      let badge = card.querySelector('.sold-badge, .new-badge');
+      const badge = card.querySelector('.sold-badge, .new-badge');
       if (badge) badge.remove();
       if (data.sold_out) {
         const b = document.createElement('div');
@@ -511,9 +528,6 @@ async function toggleSoldOut(e, pid, btn) {
   }
 }
 
-// ══════════════════════════════════════════════════════════════════════════
-//  GHOST ADMIN — DELETE PRODUCT
-// ══════════════════════════════════════════════════════════════════════════
 async function deleteProduct(e, pid) {
   e.stopPropagation();
   if (!confirm('Remove this piece from the collection?')) return;
@@ -540,86 +554,13 @@ async function deleteProduct(e, pid) {
 }
 
 // ══════════════════════════════════════════════════════════════════════════
-//  GHOST ADMIN — CATEGORY MANAGER
+//  CATEGORY INLINE MANAGEMENT
 // ══════════════════════════════════════════════════════════════════════════
-function openCatManager() {
-  loadCatList();
-  document.getElementById('catOverlay').classList.add('open');
-  document.getElementById('catModal').classList.add('open');
-}
-
-function closeCatManager() {
-  document.getElementById('catOverlay').classList.remove('open');
-  document.getElementById('catModal').classList.remove('open');
-}
-
-async function loadCatList() {
-  const res  = await fetch('/admin/categories');
-  const cats = await res.json();
-  const list = document.getElementById('catList');
-  const sel  = document.getElementById('aCat');
-
-  list.innerHTML = cats.map(c => `
-    <div class="cat-item">
-      <span>${c.name}</span>
-      <button class="cat-del-btn" onclick="deleteCategory(${c.id},'${c.name}')">Remove</button>
-    </div>`).join('');
-
-  sel.innerHTML = cats.map(c =>
-    `<option value="${c.name}">${c.name}</option>`
-  ).join('');
-
-  // Also update filter tabs
-  const tabs = document.getElementById('catTabs');
-  const existing = tabs.querySelector('[data-cat="all"]').outerHTML;
-  tabs.innerHTML = existing + cats.map(c =>
-    `<button class="cat-tab ${activeCat === c.name ? 'active' : ''}" data-cat="${c.name}" onclick="filterCat(this,'${c.name}')">${c.name}</button>`
-   ).join('');
-}
-
-async function addCategory() {
-  const input = document.getElementById('newCatInput');
-  const name  = input.value.trim();
-  if (!name) { alert('Please enter a category name.'); return; }
-
-  const res = await fetch('/admin/categories/add', {
-    method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({ name })
-  });
-
-  if (res.ok) {
-    input.value = '';
-    loadCatList();
-  } else {
-    const data = await res.json();
-    alert(data.error || 'Could not add category.');
-  }
-}
-
-async function deleteCategory(id, name) {
-  if (!confirm(`Remove "${name}" from categories?`)) return;
-  const res = await fetch(`/admin/categories/delete/${id}`, { method: 'DELETE' });
-  if (res.ok) loadCatList();
-}
-
-// ══════════════════════════════════════════════════════════════════════════
-//  UTILS
-// ══════════════════════════════════════════════════════════════════════════
-function fmt(n) {
-  return Number(n).toLocaleString('en-NG', { minimumFractionDigits: 0 });
-}
-
-// ══════════════════════════════════════════════════════════════════════════
-//  CATEGORY INLINE MANAGEMENT (replaces broken modal)
-// ══════════════════════════════════════════════════════════════════════════
-
 let activeCatMenuId   = null;
 let activeCatMenuName = null;
-let catInputMode      = null; // 'add' or 'edit'
+let catInputMode      = null;
 
-// Close menu when tapping anywhere else
-document.addEventListener('click', function(e) {
+document.addEventListener('click', e => {
   const menu = document.getElementById('catMenuPopup');
   if (menu && menu.classList.contains('show')) {
     if (!menu.contains(e.target) && !e.target.classList.contains('cat-edit-btn')) {
@@ -628,7 +569,6 @@ document.addEventListener('click', function(e) {
   }
 });
 
-// Open the ✏️ mini popup near the tapped button
 function openCatMenu(e, id, name) {
   e.stopPropagation();
   activeCatMenuId   = id;
@@ -637,35 +577,36 @@ function openCatMenu(e, id, name) {
   const menu = document.getElementById('catMenuPopup');
   const rect = e.target.getBoundingClientRect();
 
-  menu.style.top  = (rect.bottom + window.scrollY + 6) + 'px';
-  menu.style.left = Math.min(rect.left, window.innerWidth - 180) + 'px';
+  // Position below the button, clamped to screen
+  const top  = rect.bottom + window.scrollY + 6;
+  const left = Math.min(rect.left + window.scrollX, window.innerWidth - 170);
+
+  menu.style.top  = top  + 'px';
+  menu.style.left = left + 'px';
   menu.classList.add('show');
 }
 
-// Open input popup to ADD a new category
 function openAddCat() {
   catInputMode = 'add';
-  document.getElementById('catInputTitle').textContent     = 'Add Category';
-  document.getElementById('catInputConfirm').textContent   = 'Add';
-  document.getElementById('catInputField').value           = '';
-  document.getElementById('catInputField').placeholder     = 'e.g. Hair Accessories';
+  document.getElementById('catInputTitle').textContent   = 'Add Category';
+  document.getElementById('catInputConfirm').textContent = 'Add';
+  document.getElementById('catInputField').value         = '';
   showCatInput();
 }
 
-// Open input popup to EDIT existing category name
 function openEditCat() {
   document.getElementById('catMenuPopup').classList.remove('show');
   catInputMode = 'edit';
-  document.getElementById('catInputTitle').textContent     = 'Edit Category Name';
-  document.getElementById('catInputConfirm').textContent   = 'Save';
-  document.getElementById('catInputField').value           = activeCatMenuName;
+  document.getElementById('catInputTitle').textContent   = 'Edit Category Name';
+  document.getElementById('catInputConfirm').textContent = 'Save';
+  document.getElementById('catInputField').value         = activeCatMenuName;
   showCatInput();
 }
 
 function showCatInput() {
   document.getElementById('catInputOverlay').classList.add('show');
   document.getElementById('catInputPopup').classList.add('show');
-  setTimeout(() => document.getElementById('catInputField').focus(), 100);
+  setTimeout(() => document.getElementById('catInputField').focus(), 150);
 }
 
 function closeCatInput() {
@@ -674,61 +615,51 @@ function closeCatInput() {
   catInputMode = null;
 }
 
-// Handle Add or Edit confirm
 async function confirmCatInput() {
   const name = document.getElementById('catInputField').value.trim();
   if (!name) { alert('Please enter a category name.'); return; }
 
   if (catInputMode === 'add') {
     const res = await fetch('/admin/categories/add', {
-      method:  'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body:    JSON.stringify({ name })
+      method: 'POST', headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ name })
     });
-    if (res.ok) {
-      closeCatInput();
-      reloadPage();
-    } else {
-      const data = await res.json();
-      alert(data.error || 'Could not add category.');
-    }
+    if (res.ok) { closeCatInput(); window.location.reload(); }
+    else { const d = await res.json(); alert(d.error || 'Could not add.'); }
+
   } else if (catInputMode === 'edit') {
-    // Delete old + add new (simple rename via two calls)
     const del = await fetch(`/admin/categories/delete/${activeCatMenuId}`, { method: 'DELETE' });
     if (del.ok) {
       const add = await fetch('/admin/categories/add', {
-        method:  'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body:    JSON.stringify({ name })
+        method: 'POST', headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ name })
       });
-      if (add.ok) {
-        closeCatInput();
-        reloadPage();
-      }
+      if (add.ok) { closeCatInput(); window.location.reload(); }
     }
   }
 }
 
-// Confirm delete category
 async function confirmDeleteCat() {
   document.getElementById('catMenuPopup').classList.remove('show');
-  if (!confirm(`Delete "${activeCatMenuName}"? This won't delete the products in it.`)) return;
+  if (!confirm(`Delete "${activeCatMenuName}"?`)) return;
   const res = await fetch(`/admin/categories/delete/${activeCatMenuId}`, { method: 'DELETE' });
-  if (res.ok) reloadPage();
+  if (res.ok) window.location.reload();
 }
 
-// Reload the page to reflect category changes
-function reloadPage() {
-  window.location.reload();
-}
-
-// Allow pressing Enter in category input to confirm
+// Enter key support in category input
 document.addEventListener('DOMContentLoaded', () => {
   const field = document.getElementById('catInputField');
   if (field) {
     field.addEventListener('keydown', e => {
-      if (e.key === 'Enter') confirmCatInput();
+      if (e.key === 'Enter')  confirmCatInput();
       if (e.key === 'Escape') closeCatInput();
     });
   }
-})
+});
+
+// ══════════════════════════════════════════════════════════════════════════
+//  UTILS
+// ══════════════════════════════════════════════════════════════════════════
+function fmt(n) {
+  return Number(n).toLocaleString('en-NG', { minimumFractionDigits: 0 });
+}
