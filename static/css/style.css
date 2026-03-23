@@ -721,4 +721,76 @@ body {
 .login-prompt-close {
   background: none; border: none; font-size: 12px;
   color: var(--brown-lite); cursor: pointer;
-   }
+}
+
+/* ── CATEGORY MANAGER POPUP (new design) ── */
+.cat-manager-overlay {
+  position: fixed; inset: 0;
+  background: rgba(20,10,8,0.5);
+  z-index: 400; display: none;
+}
+.cat-manager-overlay.open { display: block; }
+
+.cat-manager-popup {
+  position: fixed; left: 50%; top: 50%;
+  transform: translate(-50%, -50%);
+  background: var(--cream); border-radius: 16px;
+  padding: 28px 24px 32px;
+  width: calc(100% - 48px); max-width: 360px;
+  z-index: 401; display: none;
+  box-shadow: 0 20px 60px rgba(62,39,35,0.3);
+  animation: popIn 0.2s ease both;
+  max-height: 80vh; overflow-y: auto;
+}
+.cat-manager-popup.open { display: block; }
+
+.cat-manager-head {
+  display: flex; justify-content: space-between;
+  align-items: center; margin-bottom: 20px;
+}
+.cat-manager-head h4 {
+  font-family: var(--ff-head); font-size: 18px; color: var(--brown);
+}
+.cat-manager-head button {
+  background: none; border: none; font-size: 18px;
+  color: var(--brown-lite); cursor: pointer;
+}
+
+.cat-manager-list { margin-bottom: 20px; }
+.cat-manager-item {
+  display: flex; justify-content: space-between;
+  align-items: center; padding: 11px 0;
+  border-bottom: 1px solid var(--gold-lite);
+}
+.cat-manager-item span { font-size: 14px; color: var(--brown); }
+.cat-manager-del {
+  background: none; border: 1px solid #ffcdd2;
+  border-radius: 3px; padding: 4px 10px;
+  font-size: 11px; color: #c62828; cursor: pointer;
+  transition: all var(--dur);
+}
+.cat-manager-del:hover { background: #ffebee; }
+
+.cat-manager-divider {
+  font-size: 10px; letter-spacing: 2px; text-transform: uppercase;
+  color: var(--brown-lite); margin-bottom: 12px;
+}
+
+.cat-manager-add-row {
+  display: flex; gap: 10px; align-items: stretch;
+}
+.cat-manager-add-row input {
+  flex: 1; padding: 12px 14px;
+  border: 1.5px solid var(--gold-lite); border-radius: 6px;
+  font-family: var(--ff-body); font-size: 13px; color: var(--brown);
+  background: var(--cream); outline: none; transition: border var(--dur);
+}
+.cat-manager-add-row input:focus { border-color: var(--gold); }
+.cat-manager-add-row button {
+  background: var(--brown); color: var(--cream); border: none;
+  border-radius: 6px; padding: 0 18px; font-family: var(--ff-body);
+  font-size: 12px; font-weight: 600; letter-spacing: 1px;
+  cursor: pointer; transition: background var(--dur); white-space: nowrap;
+}
+.cat-manager-add-row button:hover { background: var(--brown-mid); }
+   
