@@ -4,3 +4,4 @@ werkzeug==2.3.7
 cloudinary==1.36.0
 flask-mail==0.9.1
 flask-login==0.6.3
+resend==0.8.0
