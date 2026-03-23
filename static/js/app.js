@@ -609,3 +609,126 @@ async function deleteCategory(id, name) {
 function fmt(n) {
   return Number(n).toLocaleString('en-NG', { minimumFractionDigits: 0 });
 }
+
+// ══════════════════════════════════════════════════════════════════════════
+//  CATEGORY INLINE MANAGEMENT (replaces broken modal)
+// ══════════════════════════════════════════════════════════════════════════
+
+let activeCatMenuId   = null;
+let activeCatMenuName = null;
+let catInputMode      = null; // 'add' or 'edit'
+
+// Close menu when tapping anywhere else
+document.addEventListener('click', function(e) {
+  const menu = document.getElementById('catMenuPopup');
+  if (menu && menu.classList.contains('show')) {
+    if (!menu.contains(e.target) && !e.target.classList.contains('cat-edit-btn')) {
+      menu.classList.remove('show');
+    }
+  }
+});
+
+// Open the ✏️ mini popup near the tapped button
+function openCatMenu(e, id, name) {
+  e.stopPropagation();
+  activeCatMenuId   = id;
+  activeCatMenuName = name;
+
+  const menu = document.getElementById('catMenuPopup');
+  const rect = e.target.getBoundingClientRect();
+
+  menu.style.top  = (rect.bottom + window.scrollY + 6) + 'px';
+  menu.style.left = Math.min(rect.left, window.innerWidth - 180) + 'px';
+  menu.classList.add('show');
+}
+
+// Open input popup to ADD a new category
+function openAddCat() {
+  catInputMode = 'add';
+  document.getElementById('catInputTitle').textContent     = 'Add Category';
+  document.getElementById('catInputConfirm').textContent   = 'Add';
+  document.getElementById('catInputField').value           = '';
+  document.getElementById('catInputField').placeholder     = 'e.g. Hair Accessories';
+  showCatInput();
+}
+
+// Open input popup to EDIT existing category name
+function openEditCat() {
+  document.getElementById('catMenuPopup').classList.remove('show');
+  catInputMode = 'edit';
+  document.getElementById('catInputTitle').textContent     = 'Edit Category Name';
+  document.getElementById('catInputConfirm').textContent   = 'Save';
+  document.getElementById('catInputField').value           = activeCatMenuName;
+  showCatInput();
+}
+
+function showCatInput() {
+  document.getElementById('catInputOverlay').classList.add('show');
+  document.getElementById('catInputPopup').classList.add('show');
+  setTimeout(() => document.getElementById('catInputField').focus(), 100);
+}
+
+function closeCatInput() {
+  document.getElementById('catInputOverlay').classList.remove('show');
+  document.getElementById('catInputPopup').classList.remove('show');
+  catInputMode = null;
+}
+
+// Handle Add or Edit confirm
+async function confirmCatInput() {
+  const name = document.getElementById('catInputField').value.trim();
+  if (!name) { alert('Please enter a category name.'); return; }
+
+  if (catInputMode === 'add') {
+    const res = await fetch('/admin/categories/add', {
+      method:  'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body:    JSON.stringify({ name })
+    });
+    if (res.ok) {
+      closeCatInput();
+      reloadPage();
+    } else {
+      const data = await res.json();
+      alert(data.error || 'Could not add category.');
+    }
+  } else if (catInputMode === 'edit') {
+    // Delete old + add new (simple rename via two calls)
+    const del = await fetch(`/admin/categories/delete/${activeCatMenuId}`, { method: 'DELETE' });
+    if (del.ok) {
+      const add = await fetch('/admin/categories/add', {
+        method:  'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body:    JSON.stringify({ name })
+      });
+      if (add.ok) {
+        closeCatInput();
+        reloadPage();
+      }
+    }
+  }
+}
+
+// Confirm delete category
+async function confirmDeleteCat() {
+  document.getElementById('catMenuPopup').classList.remove('show');
+  if (!confirm(`Delete "${activeCatMenuName}"? This won't delete the products in it.`)) return;
+  const res = await fetch(`/admin/categories/delete/${activeCatMenuId}`, { method: 'DELETE' });
+  if (res.ok) reloadPage();
+}
+
+// Reload the page to reflect category changes
+function reloadPage() {
+  window.location.reload();
+}
+
+// Allow pressing Enter in category input to confirm
+document.addEventListener('DOMContentLoaded', () => {
+  const field = document.getElementById('catInputField');
+  if (field) {
+    field.addEventListener('keydown', e => {
+      if (e.key === 'Enter') confirmCatInput();
+      if (e.key === 'Escape') closeCatInput();
+    });
+  }
+})
