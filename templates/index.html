@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8"/>
   <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
-  <title>Juliart NG — Bespoke Jewelry</title>
+  <title>Juliart NG — Bespoke Bead Jewelry</title>
   <link rel="icon" type="image/png" href="{{ url_for('static', filename='images/logo.png') }}"/>
   <link rel="preconnect" href="https://fonts.googleapis.com"/>
   <link href="https://fonts.googleapis.com/css2?family=Playfair+Display:ital,wght@0,400;0,600;0,700;1,400&family=Montserrat:wght@300;400;500;600&display=swap" rel="stylesheet"/>
@@ -24,8 +24,11 @@
     <nav class="header-nav">
       <a href="#gallery">Collection</a>
       <a href="#about">Our Story</a>
+      <button class="wishlist-nav-btn" onclick="openWishlist()" id="wishlistNavBtn" style="display:none">
+        ♡ <span id="wishlistCount">0</span>
+      </button>
       {% if is_admin %}
-        <span class="admin-badge">✦ Curator Mode</span>
+        <span class="admin-badge">✦ Curator</span>
         <a href="{{ url_for('exitglass') }}" class="exit-btn">Exit</a>
       {% endif %}
     </nav>
@@ -52,40 +55,76 @@
 {% if is_admin %}
 <section class="admin-panel">
   <div class="admin-inner">
-
-    <!-- Admin top bar -->
-    <div class="admin-topbar">
-      <div class="admin-top-bar"><h3 class="admin-title">✦ List a New Piece</h3><a href="/showglass/vault" class="vault-link">📊 Activity Vault</a></div>
+    <div class="admin-top-bar">
+      <h3 class="admin-title">✦ List a New Piece</h3>
       <a href="/showglass/vault" class="vault-link">📊 Activity Vault</a>
     </div>
 
     <div class="admin-form">
 
-      <!-- Photo picker -->
-      <div class="upload-zone" id="uploadZone" onclick="triggerPicker()">
-        <input type="file" id="imagePicker" accept="image/*"
-               style="display:none" onchange="handlePick(this)"/>
-        <div id="uploadPlaceholder" class="upload-placeholder">
-          <span class="upload-cam">📷</span>
-          <span class="upload-hint">Tap to pick photo from gallery</span>
-        </div>
-        <img id="uploadPreview" class="upload-preview" style="display:none" alt="preview"/>
-        <div id="uploadBar" class="upload-bar-wrap" style="display:none">
-          <div class="upload-bar-fill" id="uploadFill"></div>
-          <span id="uploadStatus">Uploading…</span>
+      <!-- 4 Image slots -->
+      <div class="image-slots">
+        <div class="slot-label">Product Photos (tap each to upload)</div>
+        <div class="slots-grid">
+          <div class="img-slot" id="slot1" onclick="triggerSlot(1)">
+            <input type="file" id="file1" accept="image/*" style="display:none" onchange="handleSlot(1,this)"/>
+            <div class="slot-placeholder"><span>📷</span><span class="slot-name">Front</span></div>
+            <img id="prev1" style="display:none" alt="front"/>
+            <div class="slot-status" id="status1"></div>
+          </div>
+          <div class="img-slot" id="slot2" onclick="triggerSlot(2)">
+            <input type="file" id="file2" accept="image/*" style="display:none" onchange="handleSlot(2,this)"/>
+            <div class="slot-placeholder"><span>📷</span><span class="slot-name">Back</span></div>
+            <img id="prev2" style="display:none" alt="back"/>
+            <div class="slot-status" id="status2"></div>
+          </div>
+          <div class="img-slot" id="slot3" onclick="triggerSlot(3)">
+            <input type="file" id="file3" accept="image/*" style="display:none" onchange="handleSlot(3,this)"/>
+            <div class="slot-placeholder"><span>📷</span><span class="slot-name">Side</span></div>
+            <img id="prev3" style="display:none" alt="side"/>
+            <div class="slot-status" id="status3"></div>
+          </div>
+          <div class="img-slot" id="slot4" onclick="triggerSlot(4)">
+            <input type="file" id="file4" accept="image/*" style="display:none" onchange="handleSlot(4,this)"/>
+            <div class="slot-placeholder"><span>📷</span><span class="slot-name">Detail</span></div>
+            <img id="prev4" style="display:none" alt="detail"/>
+            <div class="slot-status" id="status4"></div>
+          </div>
         </div>
       </div>
 
-      <input id="aName"  type="text"   placeholder="Piece name"             class="admin-input"/>
-      <input id="aPrice" type="number" placeholder="Price (₦)"              class="admin-input"/>
-      <input id="aCat"   type="text"   placeholder="Category  e.g. Rings"   class="admin-input"/>
-      <textarea id="aDesc" placeholder="Short description…"
-                class="admin-input admin-ta"></textarea>
-      <button class="admin-btn" onclick="adminAdd()">✦ &nbsp;List This Piece</button>
+      <input id="aName"  type="text"   placeholder="Piece name"    class="admin-input"/>
+      <input id="aPrice" type="number" placeholder="Price (₦)"     class="admin-input"/>
 
+      <!-- Category dropdown + manage -->
+      <div class="cat-row">
+        <select id="aCat" class="admin-input admin-select">
+          {% for c in categories %}
+          <option value="{{ c.name }}">{{ c.name }}</option>
+          {% endfor %}
+        </select>
+        <button class="manage-cat-btn" onclick="openCatManager()">Manage Categories</button>
+      </div>
+
+      <textarea id="aDesc" placeholder="Description…" class="admin-input admin-ta"></textarea>
+      <button class="admin-btn" onclick="adminAdd()">✦ &nbsp;List This Piece</button>
     </div>
   </div>
 </section>
+
+<!-- Category Manager Modal -->
+<div class="cat-overlay" id="catOverlay" onclick="closeCatManager()"></div>
+<div class="cat-modal" id="catModal">
+  <div class="cat-modal-head">
+    <h3>Manage Categories</h3>
+    <button onclick="closeCatManager()">✕</button>
+  </div>
+  <div class="cat-list" id="catList"></div>
+  <div class="cat-add-row">
+    <input type="text" id="newCatInput" placeholder="New category name…" class="admin-input"/>
+    <button class="admin-btn" style="margin-top:10px" onclick="addCategory()">Add</button>
+  </div>
+</div>
 {% endif %}
 
 
@@ -94,22 +133,49 @@
   <div class="section-eyebrow">The Collection</div>
   <h2 class="section-title">Curated Pieces</h2>
 
+  <!-- Search bar -->
+  <div class="search-wrap">
+    <span class="search-icon">🔍</span>
+    <input type="text" id="searchInput" class="search-input"
+           placeholder="Search pieces…" oninput="filterProducts()"/>
+  </div>
+
+  <!-- Category filter tabs -->
+  <div class="cat-tabs" id="catTabs">
+    <button class="cat-tab active" data-cat="all" onclick="filterCat(this,'all')">All</button>
+    {% for c in categories %}
+    <button class="cat-tab" data-cat="{{ c.name }}" onclick="filterCat(this,'{{ c.name }}')">{{ c.name }}</button>
+    {% endfor %}
+  </div>
+
+  <!-- Product grid -->
   <div class="product-grid" id="productGrid">
     {% if products %}
       {% for p in products %}
-      <article class="product-card"
+      {% set images = [p.image1] %}
+      {% set is_new = (now - p.created_at).days < 7 %}
+      <article class="product-card {% if p.sold_out %}sold-out-card{% endif %}"
                data-id="{{ p.id }}"
                data-name="{{ p.name }}"
                data-price="{{ p.price }}"
-               data-image="{{ p.image }}"
                data-category="{{ p.category }}"
                data-desc="{{ p.desc }}"
+               data-soldout="{{ 'true' if p.sold_out else 'false' }}"
+               data-images="{{ [p.image1, p.image2, p.image3, p.image4] | select | list | tojson }}"
                onclick="openTray(this)">
         <div class="card-img-wrap">
-          <img src="{{ p.image }}" alt="{{ p.name }}" loading="lazy" class="card-img"/>
+          <img src="{{ p.image1 }}" alt="{{ p.name }}" loading="lazy" class="card-img"/>
           <div class="card-overlay"></div>
+          {% if p.sold_out %}<div class="sold-badge">Sold Out</div>{% endif %}
+          {% if is_new and not p.sold_out %}<div class="new-badge">New</div>{% endif %}
+          <button class="wish-btn" data-id="{{ p.id }}" onclick="toggleWish(event, {{ p.id }})">♡</button>
           {% if is_admin %}
-          <button class="delete-btn" onclick="deleteProduct(event,{{ p.id }})">✕</button>
+          <div class="admin-card-btns">
+            <button class="sold-toggle-btn" onclick="toggleSoldOut(event,{{ p.id }},this)">
+              {{ 'Mark Available' if p.sold_out else 'Mark Sold Out' }}
+            </button>
+            <button class="delete-btn" onclick="deleteProduct(event,{{ p.id }})">✕</button>
+          </div>
           {% endif %}
         </div>
         <div class="card-body">
@@ -120,12 +186,17 @@
       </article>
       {% endfor %}
     {% else %}
-      <div class="empty-state">
+      <div class="empty-state" id="emptyState">
         <div class="empty-ornament">✦</div>
         <p class="empty-title">The collection is being curated</p>
         <p class="empty-sub">New pieces will appear here soon.<br/>Check back shortly.</p>
       </div>
     {% endif %}
+  </div>
+
+  <!-- No search results -->
+  <div class="no-results" id="noResults" style="display:none">
+    <p>No pieces found for "<span id="searchTerm"></span>"</p>
   </div>
 </section>
 
@@ -154,7 +225,13 @@
 <aside class="velvet-tray" id="velvetTray">
   <div class="tray-handle"></div>
   <div class="tray-content">
-    <img src="" alt="" id="trayImg" class="tray-img"/>
+    <!-- Image gallery -->
+    <div class="tray-gallery" id="trayGallery">
+      <div class="tray-gallery-track" id="trayTrack"></div>
+      <div class="tray-dots" id="trayDots"></div>
+      <button class="tray-arrow tray-prev" id="trayPrev" onclick="galleryPrev()">‹</button>
+      <button class="tray-arrow tray-next" id="trayNext" onclick="galleryNext()">›</button>
+    </div>
     <div class="tray-info">
       <span class="tray-cat"   id="trayCat"></span>
       <h2  class="tray-name"  id="trayName"></h2>
@@ -163,14 +240,29 @@
       <div class="tray-actions">
         <button class="t-btn t-add"    id="trayAdd"    onclick="cartAdd()">Add to Tray</button>
         <button class="t-btn t-remove" id="trayRemove" onclick="cartRemove()">Remove</button>
+        <button class="t-btn t-wish"   id="trayWish"   onclick="toggleWishTray()">♡ Save</button>
         <button class="t-btn t-close"  onclick="closeTray()">Close</button>
+      </div>
+      <div class="sold-out-notice" id="soldOutNotice" style="display:none">
+        This piece is currently sold out.
       </div>
     </div>
   </div>
 </aside>
 
 
-<!-- ░░ FLOATING CHECKOUT BUTTON ░░ -->
+<!-- ░░ WISHLIST SHEET ░░ -->
+<div class="wishlist-overlay" id="wishlistOverlay" onclick="closeWishlist()"></div>
+<div class="wishlist-sheet"   id="wishlistSheet">
+  <div class="wishlist-head">
+    <h3>Saved Pieces</h3>
+    <button onclick="closeWishlist()">✕</button>
+  </div>
+  <div class="wishlist-items" id="wishlistItems"></div>
+</div>
+
+
+<!-- ░░ FAB ░░ -->
 <div class="fab-wrap" id="fabWrap" style="display:none">
   <button class="fab" onclick="openCheckout()">
     <span class="fab-icon">🛍</span>
@@ -206,12 +298,10 @@
 
 <!-- ░░ FOOTER ░░ -->
 <footer class="site-footer">
-  <img src="{{ url_for('static', filename='images/logo.png') }}"
-       alt="Juliart NG" class="footer-logo-img"/>
-  <p class="footer-tag">Bespoke Jewelry · Made in Nigeria · Shipped Worldwide</p>
+  <img src="{{ url_for('static', filename='images/logo.png') }}" alt="Juliart NG" class="footer-logo-img"/>
+  <p class="footer-tag">Bespoke Bead Jewelry · Made in Nigeria · Shipped Worldwide</p>
   <p class="footer-copy">© 2026 Juliart NG. All rights reserved.</p>
 </footer>
-
 
 <script>
   const WHATSAPP = "{{ whatsapp }}";
