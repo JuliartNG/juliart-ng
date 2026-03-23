@@ -499,7 +499,8 @@ def cart_clear():
     return jsonify({'ok': True})
 
 @app.route('/cart')
-def cart     = session.get('cart', {})
+def cart_data():
+    cart     = session.get('cart', {})
     products = {str(p.id): p for p in Product.query.all()}
     items, total = [], 0
     for pid, qty in cart.items():
