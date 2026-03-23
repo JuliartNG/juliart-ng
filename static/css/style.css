@@ -653,3 +653,72 @@ body {
   transition: background var(--dur);
 }
 .cat-input-confirm:hover { background: var(--brown-mid); }
+
+/* ── AUTH LINKS IN HEADER ── */
+.auth-link {
+  text-decoration: none; font-size: 11px; letter-spacing: 1.5px;
+  text-transform: uppercase; color: var(--brown-mid);
+  transition: color var(--dur);
+}
+.auth-link:hover { color: var(--brown); }
+.auth-link-gold {
+  background: var(--gold); color: var(--brown) !important;
+  padding: 6px 14px; border-radius: 3px;
+}
+.auth-link-gold:hover { background: var(--gold-lite); }
+
+/* ── FOOTER LINKS ── */
+.footer-links {
+  display: flex; align-items: center; gap: 12px;
+  justify-content: center; margin-bottom: 12px;
+}
+.footer-links a { font-size: 11px; color: var(--brown-lite); text-decoration: none; }
+.footer-links a:hover { color: var(--brown); }
+.footer-links span { color: var(--brown-lite); font-size: 11px; }
+
+/* ── LOGIN PROMPT POPUP ── */
+.login-prompt-overlay {
+  position: fixed; inset: 0;
+  background: rgba(20,10,8,0.5);
+  z-index: 350; display: none;
+}
+.login-prompt-overlay.open { display: block; }
+.login-prompt-popup {
+  position: fixed; left: 50%; top: 50%;
+  transform: translate(-50%, -50%);
+  background: var(--cream); border-radius: 16px;
+  padding: 36px 28px; width: calc(100% - 48px);
+  max-width: 340px; z-index: 351;
+  text-align: center;
+  box-shadow: 0 20px 60px rgba(62,39,35,0.3);
+  display: none; animation: popIn 0.2s ease both;
+}
+.login-prompt-popup.open { display: block; }
+.login-prompt-icon {
+  font-size: 40px; color: #e53935;
+  margin-bottom: 14px;
+}
+.login-prompt-popup h4 {
+  font-family: var(--ff-head); font-size: 20px;
+  color: var(--brown); margin-bottom: 10px;
+}
+.login-prompt-popup p {
+  font-size: 13px; color: var(--brown-lite);
+  line-height: 1.7; margin-bottom: 24px;
+}
+.login-prompt-btn {
+  display: block; background: var(--brown); color: var(--cream);
+  text-decoration: none; padding: 14px; border-radius: 6px;
+  font-size: 11px; font-weight: 600; letter-spacing: 2px;
+  text-transform: uppercase; margin-bottom: 12px;
+  transition: background var(--dur);
+}
+.login-prompt-btn:hover { background: var(--brown-mid); }
+.login-prompt-link {
+  display: block; font-size: 12px; color: var(--brown-mid);
+  text-decoration: none; margin-bottom: 16px;
+}
+.login-prompt-close {
+  background: none; border: none; font-size: 12px;
+  color: var(--brown-lite); cursor: pointer;
+   }
