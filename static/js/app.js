@@ -552,107 +552,70 @@ async function deleteProduct(e, pid) {
     }
   }
 }
-
 // ══════════════════════════════════════════════════════════════════════════
-//  CATEGORY INLINE MANAGEMENT
+//  CATEGORY MANAGER
 // ══════════════════════════════════════════════════════════════════════════
-let activeCatMenuId   = null;
-let activeCatMenuName = null;
-let catInputMode      = null;
 
-document.addEventListener('click', e => {
-  const menu = document.getElementById('catMenuPopup');
-  if (menu && menu.classList.contains('show')) {
-    if (!menu.contains(e.target) && !e.target.classList.contains('cat-edit-btn')) {
-      menu.classList.remove('show');
-    }
+async function openCatManager() {
+  await loadCatManagerList();
+  document.getElementById('catManagerOverlay').classList.add('open');
+  document.getElementById('catManagerPopup').classList.add('open');
+}
+
+function closeCatManager() {
+  document.getElementById('catManagerOverlay').classList.remove('open');
+  document.getElementById('catManagerPopup').classList.remove('open');
+  const inp = document.getElementById('newCatInput');
+  if (inp) inp.value = '';
+}
+
+async function loadCatManagerList() {
+  const res  = await fetch('/admin/categories');
+  const cats = await res.json();
+  const list = document.getElementById('catManagerList');
+  if (!cats.length) {
+    list.innerHTML = '<p style="color:var(--brown-lite);font-size:13px;padding:8px 0">No categories yet.</p>';
+    return;
   }
-});
-
-function openCatMenu(e, id, name) {
-  e.stopPropagation();
-  activeCatMenuId   = id;
-  activeCatMenuName = name;
-
-  const menu = document.getElementById('catMenuPopup');
-  const rect = e.target.getBoundingClientRect();
-
-  // Position below the button, clamped to screen
-  const top  = rect.bottom + window.scrollY + 6;
-  const left = Math.min(rect.left + window.scrollX, window.innerWidth - 170);
-
-  menu.style.top  = top  + 'px';
-  menu.style.left = left + 'px';
-  menu.classList.add('show');
+  list.innerHTML = cats.map(function(c) {
+    return '<div class="cat-manager-item"><span>' + c.name + '</span>' +
+           '<button class="cat-manager-del" onclick="deleteCatFromManager(' + c.id + ',\'' + c.name + '\')">Remove</button></div>';
+  }).join('');
 }
 
-function openAddCat() {
-  catInputMode = 'add';
-  document.getElementById('catInputTitle').textContent   = 'Add Category';
-  document.getElementById('catInputConfirm').textContent = 'Add';
-  document.getElementById('catInputField').value         = '';
-  showCatInput();
-}
-
-function openEditCat() {
-  document.getElementById('catMenuPopup').classList.remove('show');
-  catInputMode = 'edit';
-  document.getElementById('catInputTitle').textContent   = 'Edit Category Name';
-  document.getElementById('catInputConfirm').textContent = 'Save';
-  document.getElementById('catInputField').value         = activeCatMenuName;
-  showCatInput();
-}
-
-function showCatInput() {
-  document.getElementById('catInputOverlay').classList.add('show');
-  document.getElementById('catInputPopup').classList.add('show');
-  setTimeout(() => document.getElementById('catInputField').focus(), 150);
-}
-
-function closeCatInput() {
-  document.getElementById('catInputOverlay').classList.remove('show');
-  document.getElementById('catInputPopup').classList.remove('show');
-  catInputMode = null;
-}
-
-async function confirmCatInput() {
-  const name = document.getElementById('catInputField').value.trim();
+async function addCategoryFromManager() {
+  const input = document.getElementById('newCatInput');
+  const name  = input.value.trim();
   if (!name) { alert('Please enter a category name.'); return; }
-
-  if (catInputMode === 'add') {
-    const res = await fetch('/admin/categories/add', {
-      method: 'POST', headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ name })
-    });
-    if (res.ok) { closeCatInput(); window.location.reload(); }
-    else { const d = await res.json(); alert(d.error || 'Could not add.'); }
-
-  } else if (catInputMode === 'edit') {
-    const del = await fetch(`/admin/categories/delete/${activeCatMenuId}`, { method: 'DELETE' });
-    if (del.ok) {
-      const add = await fetch('/admin/categories/add', {
-        method: 'POST', headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ name })
-      });
-      if (add.ok) { closeCatInput(); window.location.reload(); }
-    }
+  const res = await fetch('/admin/categories/add', {
+    method:  'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body:    JSON.stringify({ name: name })
+  });
+  if (res.ok) {
+    input.value = '';
+    await loadCatManagerList();
+    window.location.reload();
+  } else {
+    const data = await res.json();
+    alert(data.error || 'Could not add category.');
   }
 }
 
-async function confirmDeleteCat() {
-  document.getElementById('catMenuPopup').classList.remove('show');
-  if (!confirm(`Delete "${activeCatMenuName}"?`)) return;
-  const res = await fetch(`/admin/categories/delete/${activeCatMenuId}`, { method: 'DELETE' });
-  if (res.ok) window.location.reload();
+async function deleteCatFromManager(id, name) {
+  if (!confirm('Remove "' + name + '" from categories?')) return;
+  const res = await fetch('/admin/categories/delete/' + id, { method: 'DELETE' });
+  if (res.ok) {
+    await loadCatManagerList();
+    window.location.reload();
+  }
 }
 
-// Enter key support in category input
-document.addEventListener('DOMContentLoaded', () => {
-  const field = document.getElementById('catInputField');
+document.addEventListener('DOMContentLoaded', function() {
+  const field = document.getElementById('newCatInput');
   if (field) {
-    field.addEventListener('keydown', e => {
-      if (e.key === 'Enter')  confirmCatInput();
-      if (e.key === 'Escape') closeCatInput();
+    field.addEventListener('keydown', function(e) {
+      if (e.key === 'Enter') addCategoryFromManager();
     });
   }
 });
