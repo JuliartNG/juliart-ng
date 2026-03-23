@@ -479,7 +479,7 @@ def cart_remove(pid):
         cart[key] -= 1
         if cart[key] <= 0: del cart[key]
     session['cart'] = cart
-        return jsonify({'count': sum(cart.values())})
+    return jsonify({'count': sum(cart.values())})
 
 @app.route('/cart/clear', methods=['POST'])
 def cart_clear():
