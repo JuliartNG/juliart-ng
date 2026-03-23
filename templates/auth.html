@@ -1,0 +1,134 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8"/>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>Juliart NG — {{ 'Create Account' if page == 'register' else 'Sign In' if page == 'login' else 'Check Email' }}</title>
+  <link rel="icon" type="image/png" href="/static/images/logo.png"/>
+  <link rel="preconnect" href="https://fonts.googleapis.com"/>
+  <link href="https://fonts.googleapis.com/css2?family=Playfair+Display:ital,wght@0,600;1,400&family=Montserrat:wght@300;400;500;600&display=swap" rel="stylesheet"/>
+  <style>
+    :root {
+      --cream: #FDFBF7; --brown: #3E2723; --brown-mid: #5D4037;
+      --brown-lite: #8D6E63; --gold: #C9A96E; --gold-lite: #E8D5B0;
+    }
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+    body {
+      min-height: 100vh; background: var(--brown);
+      display: flex; align-items: center; justify-content: center;
+      font-family: 'Montserrat', sans-serif; padding: 24px;
+      background-image: radial-gradient(ellipse at 20% 50%, rgba(201,169,110,0.07) 0%, transparent 60%),
+                        radial-gradient(ellipse at 80% 20%, rgba(201,169,110,0.05) 0%, transparent 50%);
+      animation: fadeIn 0.6s ease both;
+    }
+    @keyframes fadeIn { from{opacity:0;transform:translateY(12px);} to{opacity:1;transform:translateY(0);} }
+    .card {
+      background: var(--cream); border-radius: 16px;
+      padding: 48px 36px 44px; width: 100%; max-width: 400px;
+      box-shadow: 0 32px 80px rgba(0,0,0,0.45);
+    }
+    .logo { width:70px; height:70px; margin:0 auto 24px; display:block; object-fit:contain; }
+    .card-title { font-family:'Playfair Display',serif; font-size:24px; color:var(--brown); text-align:center; margin-bottom:6px; }
+    .card-sub   { font-size:10px; letter-spacing:3px; text-transform:uppercase; color:var(--brown-lite); text-align:center; margin-bottom:32px; }
+    .error-box  { background:#fff0f0; border:1px solid #ffcdd2; border-radius:6px; padding:11px 16px; font-size:12px; color:#c62828; margin-bottom:16px; }
+    .field { margin-bottom:14px; }
+    .field label { display:block; font-size:10px; letter-spacing:2px; text-transform:uppercase; color:var(--brown-lite); margin-bottom:6px; }
+    .field input {
+      width:100%; padding:14px 16px; border:1.5px solid var(--gold-lite); border-radius:6px;
+      font-family:'Montserrat',sans-serif; font-size:14px; color:var(--brown);
+      background:var(--cream); outline:none; transition:border 0.3s;
+    }
+    .field input:focus { border-color:var(--gold); }
+    .submit-btn {
+      width:100%; padding:16px; background:var(--brown); color:var(--cream); border:none;
+      border-radius:6px; font-family:'Montserrat',sans-serif; font-size:11px; font-weight:600;
+      letter-spacing:3px; text-transform:uppercase; cursor:pointer; margin:8px 0 20px;
+      transition:background 0.3s;
+    }
+    .submit-btn:hover { background:var(--brown-mid); }
+    .ornament { font-size:13px; color:var(--gold); letter-spacing:8px; text-align:center; margin-bottom:16px; }
+    .switch-link { text-align:center; font-size:12px; color:var(--brown-lite); }
+    .switch-link a { color:var(--brown-mid); text-decoration:none; font-weight:500; }
+    .back-link { display:block; text-align:center; margin-top:16px; font-size:11px; color:var(--brown-lite); text-decoration:none; }
+    /* Check email & verify pages */
+    .big-icon  { font-size:48px; text-align:center; margin-bottom:16px; }
+    .info-text { font-size:14px; color:var(--brown-lite); text-align:center; line-height:1.8; margin-bottom:24px; }
+    .info-text strong { color:var(--brown); }
+    .gold-btn  {
+      display:block; text-align:center; text-decoration:none;
+      background:var(--gold); color:var(--brown); padding:14px;
+      border-radius:6px; font-size:11px; font-weight:700;
+      letter-spacing:2px; text-transform:uppercase; margin-bottom:12px;
+    }
+  </style>
+</head>
+<body>
+<div class="card">
+  <img src="/static/images/logo.png" alt="Juliart NG" class="logo"/>
+
+  {% if page == 'register' %}
+    <h1 class="card-title">Create Account</h1>
+    <p class="card-sub">Juliart NG · Join Us</p>
+    {% if error %}<div class="error-box">{{ error }}</div>{% endif %}
+    <form method="POST" action="/register">
+      <div class="field">
+        <label>Full Name</label>
+        <input type="text" name="name" placeholder="Your name" required/>
+      </div>
+      <div class="field">
+        <label>Email Address</label>
+        <input type="email" name="email" placeholder="you@example.com" required/>
+      </div>
+      <div class="field">
+        <label>Password</label>
+        <input type="password" name="password" placeholder="At least 6 characters" required/>
+      </div>
+      <button class="submit-btn" type="submit">Create Account</button>
+    </form>
+    <div class="ornament">✦ ✦ ✦</div>
+    <p class="switch-link">Already have an account? <a href="/login">Sign in</a></p>
+    <a href="/" class="back-link">← Back to store</a>
+
+  {% elif page == 'login' %}
+    <h1 class="card-title">Welcome Back</h1>
+    <p class="card-sub">Juliart NG · Sign In</p>
+    {% if error %}<div class="error-box">{{ error }}</div>{% endif %}
+    <form method="POST" action="/login">
+      <div class="field">
+        <label>Email Address</label>
+        <input type="email" name="email" placeholder="you@example.com" required autofocus/>
+      </div>
+      <div class="field">
+        <label>Password</label>
+        <input type="password" name="password" placeholder="Your password" required/>
+      </div>
+      <button class="submit-btn" type="submit">Sign In</button>
+    </form>
+    <div class="ornament">✦ ✦ ✦</div>
+    <p class="switch-link">New here? <a href="/register">Create an account</a></p>
+    <a href="/" class="back-link">← Back to store</a>
+
+  {% elif page == 'check_email' %}
+    <div class="big-icon">📬</div>
+    <h1 class="card-title">Check Your Email</h1>
+    <p class="card-sub">Almost there!</p>
+    <p class="info-text">
+      We sent a verification link to<br/>
+      <strong>{{ email }}</strong><br/><br/>
+      Tap the link in the email to activate your account.
+    </p>
+    <a href="/login" class="gold-btn">Go to Sign In</a>
+    <a href="/" class="back-link">← Back to store</a>
+
+  {% elif page == 'verify_invalid' %}
+    <div class="big-icon">❌</div>
+    <h1 class="card-title">Invalid Link</h1>
+    <p class="card-sub">Something went wrong</p>
+    <p class="info-text">This verification link is invalid or has already been used.</p>
+    <a href="/register" class="gold-btn">Try Again</a>
+    <a href="/" class="back-link">← Back to store</a>
+  {% endif %}
+
+</div>
+</body>
+</html>
