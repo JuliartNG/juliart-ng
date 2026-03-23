@@ -1,3 +1,6 @@
 flask==2.3.3
 flask-sqlalchemy==3.1.1
 werkzeug==2.3.7
+cloudinary==1.36.0
+flask-mail==0.9.1
+flask-login==0.6.3
