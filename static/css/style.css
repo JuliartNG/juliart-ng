@@ -467,4 +467,189 @@ body {
   .header-nav a:not(.exit-btn) { display:none; }
   .r2,.r3 { display:none; }
   .slots-grid { grid-template-columns:repeat(2,1fr); }
-     }
+}
+
+/* ═══════════════════════════════════════════════════
+   CATEGORY INLINE MANAGEMENT — Admin Only
+   ═══════════════════════════════════════════════════ */
+
+/* Tabs wrapper with + button */
+.cat-tabs-wrap {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  margin-bottom: 36px;
+  flex-wrap: wrap;
+}
+.cat-tabs {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  flex: 1;
+  margin-bottom: 0;
+}
+
+/* Each tab + its edit button wrapped together */
+.cat-tab-wrap {
+  position: relative;
+  display: inline-flex;
+  align-items: center;
+}
+
+/* The ✏️ edit button on each tab — admin only */
+.cat-edit-btn {
+  position: absolute;
+  top: -8px;
+  right: -8px;
+  width: 18px;
+  height: 18px;
+  border-radius: 50%;
+  background: var(--brown);
+  border: 1.5px solid var(--gold);
+  font-size: 9px;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 3;
+  transition: transform 0.2s;
+  padding: 0;
+  line-height: 1;
+}
+.cat-edit-btn:hover { transform: scale(1.2); }
+
+/* + Add category button */
+.cat-add-fab {
+  width: 36px;
+  height: 36px;
+  border-radius: 50%;
+  background: var(--gold);
+  color: var(--brown);
+  border: none;
+  font-size: 20px;
+  font-weight: 300;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+  transition: background var(--dur), transform var(--dur);
+  box-shadow: 0 2px 10px rgba(201,169,110,0.3);
+}
+.cat-add-fab:hover { background: var(--gold-lite); transform: scale(1.05); }
+
+/* Floating mini popup menu (Edit / Delete) */
+.cat-menu-popup {
+  position: fixed;
+  background: var(--cream);
+  border-radius: 10px;
+  box-shadow: 0 8px 32px rgba(62,39,35,0.22);
+  overflow: hidden;
+  z-index: 400;
+  display: none;
+  min-width: 160px;
+  border: 1px solid var(--gold-lite);
+  animation: popIn 0.15s ease both;
+}
+.cat-menu-popup.show { display: block; }
+@keyframes popIn {
+  from { opacity: 0; transform: scale(0.92); }
+  to   { opacity: 1; transform: scale(1); }
+}
+.cat-menu-popup button {
+  display: block;
+  width: 100%;
+  background: none;
+  border: none;
+  padding: 13px 18px;
+  text-align: left;
+  font-family: var(--ff-body);
+  font-size: 13px;
+  color: var(--brown);
+  cursor: pointer;
+  transition: background var(--dur);
+}
+.cat-menu-popup button:hover { background: var(--cream-dark); }
+.cat-menu-popup .cat-menu-delete { color: #c62828; border-top: 1px solid var(--gold-lite); }
+
+/* Category input popup (Add / Edit name) */
+.cat-input-overlay {
+  position: fixed;
+  inset: 0;
+  background: rgba(20,10,8,0.45);
+  z-index: 410;
+  display: none;
+}
+.cat-input-overlay.show { display: block; }
+
+.cat-input-popup {
+  position: fixed;
+  left: 50%;
+  top: 50%;
+  transform: translate(-50%, -50%) scale(0.92);
+  background: var(--cream);
+  border-radius: 14px;
+  padding: 28px 24px;
+  width: calc(100% - 48px);
+  max-width: 340px;
+  z-index: 411;
+  box-shadow: 0 16px 48px rgba(62,39,35,0.25);
+  display: none;
+  animation: popIn 0.2s ease both;
+}
+.cat-input-popup.show {
+  display: block;
+  transform: translate(-50%, -50%) scale(1);
+}
+.cat-input-popup h4 {
+  font-family: var(--ff-head);
+  font-size: 18px;
+  color: var(--brown);
+  margin-bottom: 16px;
+}
+.cat-input-field {
+  width: 100%;
+  padding: 13px 15px;
+  border: 1.5px solid var(--gold-lite);
+  border-radius: 6px;
+  font-family: var(--ff-body);
+  font-size: 14px;
+  color: var(--brown);
+  background: var(--cream);
+  outline: none;
+  margin-bottom: 16px;
+  transition: border var(--dur);
+}
+.cat-input-field:focus { border-color: var(--gold); }
+.cat-input-btns {
+  display: flex;
+  gap: 10px;
+}
+.cat-input-cancel {
+  flex: 1;
+  background: none;
+  border: 1px solid var(--brown-lite);
+  border-radius: 4px;
+  padding: 12px;
+  font-family: var(--ff-body);
+  font-size: 12px;
+  color: var(--brown-lite);
+  cursor: pointer;
+  transition: all var(--dur);
+}
+.cat-input-cancel:hover { border-color: var(--brown); color: var(--brown); }
+.cat-input-confirm {
+  flex: 1;
+  background: var(--brown);
+  border: none;
+  border-radius: 4px;
+  padding: 12px;
+  font-family: var(--ff-body);
+  font-size: 12px;
+  font-weight: 600;
+  letter-spacing: 1px;
+  color: var(--cream);
+  cursor: pointer;
+  transition: background var(--dur);
+}
+.cat-input-confirm:hover { background: var(--brown-mid); }
