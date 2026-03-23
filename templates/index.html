@@ -64,7 +64,7 @@
 
       <!-- 4 Image slots -->
       <div class="image-slots">
-        <div class="slot-label">Product Photos (tap each to upload)</div>
+        <div class="slot-label">Product Photos — tap each to upload</div>
         <div class="slots-grid">
           <div class="img-slot" id="slot1" onclick="triggerSlot(1)">
             <input type="file" id="file1" accept="image/*" style="display:none" onchange="handleSlot(1,this)"/>
@@ -95,36 +95,16 @@
 
       <input id="aName"  type="text"   placeholder="Piece name"    class="admin-input"/>
       <input id="aPrice" type="number" placeholder="Price (₦)"     class="admin-input"/>
-
-      <!-- Category dropdown + manage -->
-      <div class="cat-row">
-        <select id="aCat" class="admin-input admin-select">
-          {% for c in categories %}
-          <option value="{{ c.name }}">{{ c.name }}</option>
-          {% endfor %}
-        </select>
-        <button class="manage-cat-btn" onclick="openCatManager()">Manage Categories</button>
-      </div>
-
+      <select id="aCat" class="admin-input admin-select">
+        {% for c in categories %}
+        <option value="{{ c.name }}">{{ c.name }}</option>
+        {% endfor %}
+      </select>
       <textarea id="aDesc" placeholder="Description…" class="admin-input admin-ta"></textarea>
       <button class="admin-btn" onclick="adminAdd()">✦ &nbsp;List This Piece</button>
     </div>
   </div>
 </section>
-
-<!-- Category Manager Modal -->
-<div class="cat-overlay" id="catOverlay" onclick="closeCatManager()"></div>
-<div class="cat-modal" id="catModal">
-  <div class="cat-modal-head">
-    <h3>Manage Categories</h3>
-    <button onclick="closeCatManager()">✕</button>
-  </div>
-  <div class="cat-list" id="catList"></div>
-  <div class="cat-add-row">
-    <input type="text" id="newCatInput" placeholder="New category name…" class="admin-input"/>
-    <button class="admin-btn" style="margin-top:10px" onclick="addCategory()">Add</button>
-  </div>
-</div>
 {% endif %}
 
 
@@ -140,19 +120,30 @@
            placeholder="Search pieces…" oninput="filterProducts()"/>
   </div>
 
-  <!-- Category filter tabs -->
-  <div class="cat-tabs" id="catTabs">
-    <button class="cat-tab active" data-cat="all" onclick="filterCat(this,'all')">All</button>
-    {% for c in categories %}
-    <button class="cat-tab" data-cat="{{ c.name }}" onclick="filterCat(this,'{{ c.name }}')">{{ c.name }}</button>
-    {% endfor %}
+  <!-- Category filter tabs — admin sees ✏️ on each + a + button -->
+  <div class="cat-tabs-wrap">
+    <div class="cat-tabs" id="catTabs">
+      <button class="cat-tab active" data-cat="all" onclick="filterCat(this,'all')">All</button>
+      {% for c in categories %}
+      <div class="cat-tab-wrap">
+        <button class="cat-tab" data-cat="{{ c.name }}"
+                onclick="filterCat(this,'{{ c.name }}')">{{ c.name }}</button>
+        {% if is_admin %}
+        <button class="cat-edit-btn" title="Edit or delete"
+                onclick="openCatMenu(event, {{ c.id }}, '{{ c.name }}')">✏️</button>
+        {% endif %}
+      </div>
+      {% endfor %}
+    </div>
+    {% if is_admin %}
+    <button class="cat-add-fab" onclick="openAddCat()" title="Add category">＋</button>
+    {% endif %}
   </div>
 
   <!-- Product grid -->
   <div class="product-grid" id="productGrid">
     {% if products %}
       {% for p in products %}
-      {% set images = [p.image1] %}
       {% set is_new = (now - p.created_at).days < 7 %}
       <article class="product-card {% if p.sold_out %}sold-out-card{% endif %}"
                data-id="{{ p.id }}"
@@ -168,7 +159,7 @@
           <div class="card-overlay"></div>
           {% if p.sold_out %}<div class="sold-badge">Sold Out</div>{% endif %}
           {% if is_new and not p.sold_out %}<div class="new-badge">New</div>{% endif %}
-          <button class="wish-btn" data-id="{{ p.id }}" onclick="toggleWish(event, {{ p.id }})">♡</button>
+          <button class="wish-btn" data-id="{{ p.id }}" onclick="toggleWish(event,{{ p.id }})">♡</button>
           {% if is_admin %}
           <div class="admin-card-btns">
             <button class="sold-toggle-btn" onclick="toggleSoldOut(event,{{ p.id }},this)">
@@ -194,7 +185,6 @@
     {% endif %}
   </div>
 
-  <!-- No search results -->
   <div class="no-results" id="noResults" style="display:none">
     <p>No pieces found for "<span id="searchTerm"></span>"</p>
   </div>
@@ -220,12 +210,29 @@
 </section>
 
 
+<!-- ░░ CATEGORY MENU POPUP ░░ -->
+<div class="cat-menu-popup" id="catMenuPopup">
+  <button onclick="openEditCat()">✏️ &nbsp;Edit Name</button>
+  <button onclick="confirmDeleteCat()" class="cat-menu-delete">🗑 &nbsp;Delete</button>
+</div>
+
+<!-- ░░ CATEGORY INPUT POPUP ░░ -->
+<div class="cat-input-overlay" id="catInputOverlay" onclick="closeCatInput()"></div>
+<div class="cat-input-popup" id="catInputPopup">
+  <h4 id="catInputTitle">Add Category</h4>
+  <input type="text" id="catInputField" class="cat-input-field" placeholder="Category name…"/>
+  <div class="cat-input-btns">
+    <button class="cat-input-cancel" onclick="closeCatInput()">Cancel</button>
+    <button class="cat-input-confirm" id="catInputConfirm" onclick="confirmCatInput()">Add</button>
+  </div>
+</div>
+
+
 <!-- ░░ VELVET TRAY ░░ -->
 <div class="tray-overlay" id="trayOverlay" onclick="closeTray()"></div>
 <aside class="velvet-tray" id="velvetTray">
   <div class="tray-handle"></div>
   <div class="tray-content">
-    <!-- Image gallery -->
     <div class="tray-gallery" id="trayGallery">
       <div class="tray-gallery-track" id="trayTrack"></div>
       <div class="tray-dots" id="trayDots"></div>
