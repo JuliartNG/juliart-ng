@@ -24,15 +24,6 @@
     <nav class="header-nav">
       <a href="#gallery">Collection</a>
       <a href="#about">Story</a>
-      {% if customer.is_authenticated %}
-        <button class="wishlist-nav-btn" onclick="openWishlist()" id="wishlistNavBtn">
-          ♡ <span id="wishlistCount">0</span>
-        </button>
-        <a href="/logout" class="auth-link">Sign Out</a>
-      {% else %}
-        <a href="/login"    class="auth-link">Sign In</a>
-        <a href="/register" class="auth-link auth-link-gold">Join</a>
-      {% endif %}
       {% if is_admin %}
         <span class="admin-badge">✦ Curator</span>
         <a href="{{ url_for('exitglass') }}" class="exit-btn">Exit</a>
@@ -161,11 +152,6 @@
           <div class="card-overlay"></div>
           {% if p.sold_out %}<div class="sold-badge">Sold Out</div>{% endif %}
           {% if is_new and not p.sold_out %}<div class="new-badge">New</div>{% endif %}
-          <button class="wish-btn {% if p.id|string in wishlist %}wished{% endif %}"
-                  data-id="{{ p.id }}"
-                  onclick="toggleWish(event,{{ p.id }})">
-            {{ '♥' if p.id|string in wishlist else '♡' }}
-          </button>
           {% if is_admin %}
           <div class="admin-card-btns">
             <button class="sold-toggle-btn" onclick="toggleSoldOut(event,{{ p.id }},this)">
@@ -216,7 +202,7 @@
 </section>
 
 
-<!-- ░░ CATEGORY MANAGER POPUP ░░ -->
+<!-- ░░ CATEGORY MANAGER ░░ -->
 <div class="cat-manager-overlay" id="catManagerOverlay" onclick="closeCatManager()"></div>
 <div class="cat-manager-popup"   id="catManagerPopup">
   <div class="cat-manager-head">
@@ -237,12 +223,17 @@
 <aside class="velvet-tray" id="velvetTray">
   <div class="tray-handle"></div>
   <div class="tray-content">
-    <div class="tray-gallery">
-      <div class="tray-gallery-track" id="trayTrack"></div>
-      <div class="tray-dots"          id="trayDots"></div>
-      <button class="tray-arrow tray-prev" onclick="galleryPrev()">‹</button>
-      <button class="tray-arrow tray-next" onclick="galleryNext()">›</button>
+
+    <!-- Image gallery with touch swipe -->
+    <div class="tray-gallery" id="trayGallery">
+      <div class="tray-track-wrap">
+        <div class="tray-gallery-track" id="trayTrack"></div>
+      </div>
+      <div class="tray-dots" id="trayDots"></div>
+      <button class="tray-arrow tray-prev" id="trayPrev" onclick="galleryPrev()">‹</button>
+      <button class="tray-arrow tray-next" id="trayNext" onclick="galleryNext()">›</button>
     </div>
+
     <div class="tray-info">
       <span class="tray-cat"   id="trayCat"></span>
       <h2  class="tray-name"  id="trayName"></h2>
@@ -251,7 +242,6 @@
       <div class="tray-actions">
         <button class="t-btn t-add"    id="trayAdd"    onclick="cartAdd()">Add to Tray</button>
         <button class="t-btn t-remove" id="trayRemove" onclick="cartRemove()">Remove</button>
-        <button class="t-btn t-wish"   id="trayWish"   onclick="toggleWishTray()">♡ Save</button>
         <button class="t-btn t-close"  onclick="closeTray()">Close</button>
       </div>
       <div class="sold-out-notice" id="soldOutNotice" style="display:none">
@@ -260,29 +250,6 @@
     </div>
   </div>
 </aside>
-
-
-<!-- ░░ WISHLIST SHEET ░░ -->
-<div class="wishlist-overlay" id="wishlistOverlay" onclick="closeWishlist()"></div>
-<div class="wishlist-sheet"   id="wishlistSheet">
-  <div class="wishlist-head">
-    <h3>Saved Pieces</h3>
-    <button onclick="closeWishlist()">✕</button>
-  </div>
-  <div class="wishlist-items" id="wishlistItems"></div>
-</div>
-
-
-<!-- ░░ LOGIN PROMPT (for wishlist when not logged in) ░░ -->
-<div class="login-prompt-overlay" id="loginPromptOverlay" onclick="closeLoginPrompt()"></div>
-<div class="login-prompt-popup"   id="loginPromptPopup">
-  <div class="login-prompt-icon">♡</div>
-  <h4>Save your favourites</h4>
-  <p>Create a free account to save pieces and access your wishlist from any device.</p>
-  <a href="/register" class="login-prompt-btn">Create Account</a>
-  <a href="/login"    class="login-prompt-link">Already have an account? Sign in</a>
-  <button class="login-prompt-close" onclick="closeLoginPrompt()">Maybe later</button>
-</div>
 
 
 <!-- ░░ FAB ░░ -->
@@ -323,23 +290,13 @@
 <footer class="site-footer">
   <img src="{{ url_for('static', filename='images/logo.png') }}" alt="Juliart NG" class="footer-logo-img"/>
   <p class="footer-tag">Bespoke Bead Jewelry · Made in Nigeria · Shipped Worldwide</p>
-  <div class="footer-links">
-    {% if customer.is_authenticated %}
-      <a href="/logout">Sign Out</a>
-    {% else %}
-      <a href="/register">Create Account</a>
-      <span>·</span>
-      <a href="/login">Sign In</a>
-    {% endif %}
-  </div>
   <p class="footer-copy">© 2026 Juliart NG. All rights reserved.</p>
 </footer>
 
 <script>
-  const WHATSAPP    = "{{ whatsapp }}";
-  const IS_ADMIN    = {{ 'true' if is_admin else 'false' }};
-  const IS_LOGGEDIN = {{ 'true' if customer.is_authenticated else 'false' }};
+  const WHATSAPP = "{{ whatsapp }}";
+  const IS_ADMIN = {{ 'true' if is_admin else 'false' }};
 </script>
 <script src="{{ url_for('static', filename='js/app.js') }}"></script>
 </body>
-</html>                                                                                            </html
+  </html>
