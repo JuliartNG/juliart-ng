@@ -1,7 +1,5 @@
 from flask import Flask, render_template, request, redirect, url_for, session, jsonify
 from flask_sqlalchemy import SQLAlchemy
-from flask_login import LoginManager, UserMixin, login_user, logout_user, login_required, current_user
-from werkzeug.security import generate_password_hash, check_password_hash
 from datetime import datetime, timedelta
 import os, uuid, cloudinary, cloudinary.uploader, resend
 
@@ -21,27 +19,9 @@ cloudinary.config(
 # ── Resend ────────────────────────────────────────────────────────────────────
 resend.api_key = os.environ.get('RESEND_API_KEY', 're_bzAXoTi8_Pyxrj528VQqCED826YSFMPbU')
 
-db           = SQLAlchemy(app)
-login_manager = LoginManager(app)
-login_manager.login_view = 'customer_login'
+db = SQLAlchemy(app)
 
 # ── Models ────────────────────────────────────────────────────────────────────
-class Customer(UserMixin, db.Model):
-    id            = db.Column(db.Integer, primary_key=True)
-    name          = db.Column(db.String(120), nullable=False)
-    email         = db.Column(db.String(120), nullable=False, unique=True)
-    password_hash = db.Column(db.String(256), nullable=False)
-    verified      = db.Column(db.Boolean, default=False)
-    verify_token  = db.Column(db.String(64), nullable=True)
-    created_at    = db.Column(db.DateTime, default=datetime.utcnow)
-    wishlist      = db.relationship('WishlistItem', backref='customer', lazy=True,
-                                    cascade='all, delete-orphan')
-
-class WishlistItem(db.Model):
-    id          = db.Column(db.Integer, primary_key=True)
-    customer_id = db.Column(db.Integer, db.ForeignKey('customer.id'), nullable=False)
-    product_id  = db.Column(db.Integer, nullable=False)
-
 class Category(db.Model):
     id   = db.Column(db.Integer, primary_key=True)
     name = db.Column(db.String(80), nullable=False, unique=True)
@@ -73,11 +53,6 @@ class LoginAttempt(db.Model):
     id        = db.Column(db.Integer, primary_key=True)
     ip        = db.Column(db.String(60))
     timestamp = db.Column(db.DateTime, default=datetime.utcnow)
-
-# ── Flask-Login ───────────────────────────────────────────────────────────────
-@login_manager.user_loader
-def load_user(user_id):
-    return Customer.query.get(int(user_id))
 
 # ── Helpers ───────────────────────────────────────────────────────────────────
 def get_admin_password():
@@ -119,11 +94,13 @@ def get_browser():
     else:                   return 'Unknown Browser'
 
 def log_event(event, success=True):
-    db.session.add(ActivityLog(
-        ip=get_ip(), event=event, success=success,
-        device=get_device(), browser=get_browser()
-    ))
-    db.session.commit()
+    try:
+        db.session.add(ActivityLog(
+            ip=get_ip(), event=event, success=success,
+            device=get_device(), browser=get_browser()
+        ))
+        db.session.commit()
+    except: pass
 
 def is_admin():
     return session.get('is_admin', False)
@@ -144,15 +121,17 @@ def clear_attempts(ip):
     db.session.commit()
 
 def purge_expired_soldout():
-    cutoff  = datetime.utcnow() - timedelta(days=7)
-    expired = Product.query.filter(
-        Product.sold_out == True,
-        Product.sold_out_at <= cutoff
-    ).all()
-    for p in expired:
-        db.session.delete(p)
-    if expired:
-        db.session.commit()
+    try:
+        cutoff  = datetime.utcnow() - timedelta(days=7)
+        expired = Product.query.filter(
+            Product.sold_out == True,
+            Product.sold_out_at <= cutoff
+        ).all()
+        for p in expired:
+            db.session.delete(p)
+        if expired:
+            db.session.commit()
+    except: pass
 
 def product_to_dict(p):
     images = [i for i in [p.image1, p.image2, p.image3, p.image4] if i]
@@ -163,47 +142,6 @@ def product_to_dict(p):
         'is_new': (datetime.utcnow() - p.created_at).days < 7,
         'images': images, 'image': p.image1
     }
-
-def get_customer_wishlist():
-    if current_user.is_authenticated:
-        return [str(w.product_id) for w in current_user.wishlist]
-    return []
-
-def send_verification_email(name, email, token):
-    verify_url = url_for('verify_email', token=token, _external=True)
-    try:
-        resend.Emails.send({
-            'from':    'Juliart NG <onboarding@resend.dev>',
-            'to':      [email],
-            'subject': 'Verify your Juliart NG account',
-            'html': f'''
-            <div style="font-family:Georgia,serif;max-width:520px;margin:0 auto;
-                        padding:48px 32px;background:#FDFBF7;border-radius:12px;">
-              <h2 style="font-family:Georgia,serif;color:#3E2723;
-                         text-align:center;margin-bottom:8px;">
-                Welcome to Juliart NG, {name}!
-              </h2>
-              <p style="color:#8D6E63;text-align:center;font-size:14px;
-                        line-height:1.7;margin-bottom:32px;">
-                Thank you for creating an account. Please verify your
-                email address to get started.
-              </p>
-              <a href="{verify_url}"
-                 style="display:block;background:#3E2723;color:#FDFBF7;
-                        text-decoration:none;text-align:center;padding:16px;
-                        border-radius:6px;font-size:12px;letter-spacing:2px;
-                        text-transform:uppercase;margin-bottom:24px;">
-                Verify My Account
-              </a>
-              <p style="color:#8D6E63;text-align:center;font-size:11px;">
-                If you didn't create this account, you can safely ignore this email.
-              </p>
-            </div>'''
-        })
-        return True
-    except Exception as e:
-        print(f'Email error: {e}')
-        return False
 
 def seed_categories():
     defaults = ['Waistbeads','Anklets','Bracelets','Neckpiece',
@@ -220,121 +158,12 @@ def index():
     products   = Product.query.order_by(Product.id.desc()).all()
     categories = Category.query.order_by(Category.name).all()
     whatsapp   = os.environ.get('WHATSAPP_NUMBER', '2347012001670')
-    wishlist   = get_customer_wishlist()
     return render_template('index.html',
                            products=products,
                            categories=categories,
                            is_admin=is_admin(),
                            whatsapp=whatsapp,
-                           now=datetime.utcnow(),
-                           wishlist=wishlist,
-                           customer=current_user)
-
-# ── Customer Auth ─────────────────────────────────────────────────────────────
-@app.route('/register', methods=['GET', 'POST'])
-def register():
-    if current_user.is_authenticated:
-        return redirect(url_for('index'))
-    error = None
-    if request.method == 'POST':
-        name     = request.form.get('name', '').strip()
-        email    = request.form.get('email', '').strip().lower()
-        password = request.form.get('password', '')
-
-        if not name or not email or not password:
-            error = 'Please fill in all fields.'
-        elif len(password) < 6:
-            error = 'Password must be at least 6 characters.'
-        elif Customer.query.filter_by(email=email).first():
-            error = 'An account with this email already exists.'
-        else:
-            token    = uuid.uuid4().hex
-            customer = Customer(
-                name          = name,
-                email         = email,
-                password_hash = generate_password_hash(password),
-                verify_token  = token
-            )
-            db.session.add(customer)
-            db.session.commit()
-
-            sent = send_verification_email(name, email, token)
-            log_event(f'New customer registered: {email}')
-
-            if sent:
-                return render_template('auth.html', page='check_email', email=email)
-            else:
-                # Email failed but account created — auto verify for now
-                customer.verified     = True
-                customer.verify_token = None
-                db.session.commit()
-                login_user(customer)
-                return redirect(url_for('index'))
-
-    return render_template('auth.html', page='register', error=error)
-
-@app.route('/verify/<token>')
-def verify_email(token):
-    customer = Customer.query.filter_by(verify_token=token).first()
-    if not customer:
-        return render_template('auth.html', page='verify_invalid')
-    customer.verified     = True
-    customer.verify_token = None
-    db.session.commit()
-    login_user(customer)
-    log_event(f'Customer verified: {customer.email}')
-    return redirect(url_for('index'))
-
-@app.route('/login', methods=['GET', 'POST'])
-def customer_login():
-    if current_user.is_authenticated:
-        return redirect(url_for('index'))
-    error = None
-    if request.method == 'POST':
-        email    = request.form.get('email', '').strip().lower()
-        password = request.form.get('password', '')
-        customer = Customer.query.filter_by(email=email).first()
-
-        if not customer or not check_password_hash(customer.password_hash, password):
-            error = 'Incorrect email or password.'
-            log_event(f'Failed customer login: {email}', success=False)
-        elif not customer.verified:
-            error = 'Please verify your email first. Check your inbox.'
-        else:
-            login_user(customer, remember=True)
-            log_event(f'Customer logged in: {email}')
-            return redirect(url_for('index'))
-
-    return render_template('auth.html', page='login', error=error)
-
-@app.route('/logout')
-def customer_logout():
-    if current_user.is_authenticated:
-        log_event(f'Customer logged out: {current_user.email}')
-        logout_user()
-    return redirect(url_for('index'))
-
-# ── Customer Wishlist ─────────────────────────────────────────────────────────
-@app.route('/wishlist/toggle/<int:pid>', methods=['POST'])
-@login_required
-def wishlist_toggle(pid):
-    item = WishlistItem.query.filter_by(
-        customer_id=current_user.id, product_id=pid).first()
-    if item:
-        db.session.delete(item)
-        db.session.commit()
-        return jsonify({'wishlisted': False})
-    else:
-        db.session.add(WishlistItem(customer_id=current_user.id, product_id=pid))
-        db.session.commit()
-        return jsonify({'wishlisted': True})
-
-@app.route('/wishlist')
-@login_required
-def wishlist_data():
-    ids      = [w.product_id for w in current_user.wishlist]
-    products = Product.query.filter(Product.id.in_(ids)).all()
-    return jsonify([product_to_dict(p) for p in products])
+                           now=datetime.utcnow())
 
 # ── Ghost Admin ───────────────────────────────────────────────────────────────
 @app.route('/showglass', methods=['GET', 'POST'])
@@ -343,8 +172,7 @@ def showglass():
     if request.method == 'POST':
         if is_blocked(ip):
             log_event('Blocked IP tried admin login', success=False)
-            return render_template('login.html',
-                                   error='Too many failed attempts. Try again in 30 minutes.')
+            return render_template('login.html', error='Too many failed attempts. Try again in 30 minutes.')
         entered = request.form.get('password', '').strip()
         if entered == get_admin_password():
             session.clear()
@@ -389,8 +217,7 @@ def upload_image():
         return jsonify({'error': 'Invalid file'}), 400
     try:
         result = cloudinary.uploader.upload(
-            f,
-            folder='juliart_ng',
+            f, folder='juliart_ng',
             transformation=[{'width': 800, 'crop': 'limit', 'quality': 'auto'}]
         )
         return jsonify({'url': result['secure_url']})
@@ -446,7 +273,7 @@ def add_product():
         desc     = data.get('desc', '').strip()
     )
     db.session.add(p); db.session.commit()
-    log_event(f'Product listed: {p.name} — ₦{p.price:,.0f}')
+    log_event(f'Product listed: {p.name}')
     return jsonify(product_to_dict(p))
 
 # ── Admin: toggle sold out ────────────────────────────────────────────────────
