@@ -1,5 +1,6 @@
 /* ═══════════════════════════════════════════════════
    JULIART NG — App Logic 2026
+   Clean version — no auth, touch swipe gallery
    ═══════════════════════════════════════════════════ */
 'use strict';
 
@@ -11,10 +12,13 @@ let galleryIndex   = 0;
 let uploadedUrls   = { 1: null, 2: null, 3: null, 4: null };
 let activeCat      = 'all';
 
+// Touch swipe state
+let touchStartX = 0;
+let touchEndX   = 0;
+
 // ── Boot ───────────────────────────────────────────────────────────────────
 document.addEventListener('DOMContentLoaded', () => {
   refreshCart();
-  updateWishlistNav();
 });
 
 // ══════════════════════════════════════════════════════════════════════════
@@ -76,17 +80,12 @@ function applyFilters() {
   let   visible = 0;
 
   cards.forEach(card => {
-    const name     = (card.dataset.name || '').toLowerCase();
-    const cat      = card.dataset.category || '';
-    const matchS   = !search || name.includes(search);
-    const matchC   = activeCat === 'all' || cat === activeCat;
-
-    if (matchS && matchC) {
-      card.style.display = '';
-      visible++;
-    } else {
-      card.style.display = 'none';
-    }
+    const name   = (card.dataset.name || '').toLowerCase();
+    const cat    = card.dataset.category || '';
+    const matchS = !search || name.includes(search);
+    const matchC = activeCat === 'all' || cat === activeCat;
+    if (matchS && matchC) { card.style.display = ''; visible++; }
+    else                  { card.style.display = 'none'; }
   });
 
   const noRes = document.getElementById('noResults');
@@ -138,11 +137,10 @@ function closeTray() {
 
 function syncTrayButtons() {
   if (!currentProduct) return;
-  const inCart  = cartState.items.some(i => String(i.id) === String(currentProduct.id));
-  const addBtn  = document.getElementById('trayAdd');
-  const remBtn  = document.getElementById('trayRemove');
-  const notice  = document.getElementById('soldOutNotice');
-  const wishBtn = document.getElementById('trayWish');
+  const inCart = cartState.items.some(i => String(i.id) === String(currentProduct.id));
+  const addBtn = document.getElementById('trayAdd');
+  const remBtn = document.getElementById('trayRemove');
+  const notice = document.getElementById('soldOutNotice');
 
   if (currentProduct.soldOut) {
     addBtn.style.display = 'block';
@@ -155,16 +153,10 @@ function syncTrayButtons() {
     addBtn.style.display = inCart ? 'none'  : 'block';
     remBtn.style.display = inCart ? 'block' : 'none';
   }
-
-  // Sync wish button
-  const wishCard = document.querySelector(`.wish-btn[data-id="${currentProduct.id}"]`);
-  const wished   = wishCard ? wishCard.classList.contains('wished') : false;
-  wishBtn.textContent = wished ? '♥ Saved' : '♡ Save';
-  wishBtn.classList.toggle('wished', wished);
 }
 
 // ══════════════════════════════════════════════════════════════════════════
-//  IMAGE GALLERY — FIXED
+//  IMAGE GALLERY — TOUCH SWIPE FIXED
 // ══════════════════════════════════════════════════════════════════════════
 function buildGallery(images) {
   galleryImages = images;
@@ -172,17 +164,21 @@ function buildGallery(images) {
 
   const track = document.getElementById('trayTrack');
   const dots  = document.getElementById('trayDots');
-  const prev  = document.querySelector('.tray-prev');
-  const next  = document.querySelector('.tray-next');
+  const prev  = document.getElementById('trayPrev');
+  const next  = document.getElementById('trayNext');
 
   // Build slides
   track.innerHTML = '';
+  track.style.width = (images.length * 100) + '%';
   images.forEach(src => {
+    const slide = document.createElement('div');
+    slide.className = 'tray-slide';
+    slide.style.width = (100 / images.length) + '%';
     const img = document.createElement('img');
-    img.src   = src;
-    img.alt   = 'product photo';
-    img.style.cssText = 'width:100%;flex-shrink:0;object-fit:cover;';
-    track.appendChild(img);
+    img.src = src;
+    img.alt = 'product';
+    slide.appendChild(img);
+    track.appendChild(slide);
   });
 
   // Build dots
@@ -196,17 +192,41 @@ function buildGallery(images) {
     });
   }
 
-  // Show/hide arrows
-  const showArrows = images.length > 1;
-  if (prev) prev.style.display = showArrows ? 'flex' : 'none';
-  if (next) next.style.display = showArrows ? 'flex' : 'none';
+  // Arrows
+  const show = images.length > 1;
+  if (prev) prev.style.display = show ? 'flex' : 'none';
+  if (next) next.style.display = show ? 'flex' : 'none';
+
+  // Touch events
+  const wrap = document.querySelector('.tray-track-wrap');
+  if (wrap) {
+    wrap.removeEventListener('touchstart', onTouchStart);
+    wrap.removeEventListener('touchend',   onTouchEnd);
+    wrap.addEventListener('touchstart', onTouchStart, { passive: true });
+    wrap.addEventListener('touchend',   onTouchEnd,   { passive: true });
+  }
 
   updateGalleryPosition();
 }
 
+function onTouchStart(e) {
+  touchStartX = e.changedTouches[0].screenX;
+}
+
+function onTouchEnd(e) {
+  touchEndX = e.changedTouches[0].screenX;
+  const diff = touchStartX - touchEndX;
+  if (Math.abs(diff) > 40) {
+    if (diff > 0) galleryNext();
+    else          galleryPrev();
+  }
+}
+
 function updateGalleryPosition() {
   const track = document.getElementById('trayTrack');
-  if (track) track.style.transform = `translateX(-${galleryIndex * 100}%)`;
+  if (track) {
+    track.style.transform = `translateX(-${galleryIndex * (100 / galleryImages.length)}%)`;
+  }
   document.querySelectorAll('.tray-dot').forEach((d, i) =>
     d.classList.toggle('active', i === galleryIndex)
   );
@@ -227,100 +247,6 @@ function galleryPrev() {
 function goToSlide(i) {
   galleryIndex = i;
   updateGalleryPosition();
-}
-
-// ══════════════════════════════════════════════════════════════════════════
-//  WISHLIST
-// ══════════════════════════════════════════════════════════════════════════
-function updateWishlistNav() {
-  const btn   = document.getElementById('wishlistNavBtn');
-  const count = document.getElementById('wishlistCount');
-  if (!btn || !IS_LOGGEDIN) return;
-  // Count wished items from DOM
-  const wishedCount = document.querySelectorAll('.wish-btn.wished').length;
-  count.textContent = wishedCount;
-}
-
-async function toggleWish(e, pid) {
-  e.stopPropagation();
-
-  if (!IS_LOGGEDIN) {
-    openLoginPrompt();
-    return;
-  }
-
-  const res = await fetch(`/wishlist/toggle/${pid}`, { method: 'POST' });
-  if (res.ok) {
-    const data = await res.json();
-    const btn  = document.querySelector(`.wish-btn[data-id="${pid}"]`);
-    if (btn) {
-      btn.classList.toggle('wished', data.wishlisted);
-      btn.textContent = data.wishlisted ? '♥' : '♡';
-    }
-    updateWishlistNav();
-    // sync tray wish button if open
-    if (currentProduct && String(currentProduct.id) === String(pid)) {
-      const wishBtn = document.getElementById('trayWish');
-      if (wishBtn) {
-        wishBtn.textContent = data.wishlisted ? '♥ Saved' : '♡ Save';
-        wishBtn.classList.toggle('wished', data.wishlisted);
-      }
-    }
-  }
-}
-
-async function toggleWishTray() {
-  if (!currentProduct) return;
-  await toggleWish({ stopPropagation: () => {} }, currentProduct.id);
-}
-
-async function openWishlist() {
-  const container = document.getElementById('wishlistItems');
-  container.innerHTML = '<p style="color:var(--brown-lite);padding:20px 0;font-size:14px">Loading…</p>';
-
-  document.getElementById('wishlistOverlay').classList.add('open');
-  document.getElementById('wishlistSheet').classList.add('open');
-  document.body.style.overflow = 'hidden';
-
-  try {
-    const res     = await fetch('/wishlist');
-    const products = await res.json();
-
-    if (!products.length) {
-      container.innerHTML = '<div class="wish-empty">No saved pieces yet.<br/>Tap ♡ on any piece to save it.</div>';
-      return;
-    }
-
-    container.innerHTML = products.map(p => `
-      <div class="wish-item" onclick="closeWishlist();setTimeout(()=>{
-        const c=document.querySelector('.product-card[data-id=\\'${p.id}\\']');
-        if(c)openTray(c);},300)">
-        <img src="${p.image}" alt="${p.name}"/>
-        <div class="wish-item-info">
-          <div class="wish-item-name">${p.name}</div>
-          <div class="wish-item-price">₦${fmt(p.price)}</div>
-        </div>
-        <button class="wish-remove" onclick="event.stopPropagation();toggleWish(event,${p.id}).then(()=>openWishlist())">✕</button>
-      </div>`).join('');
-  } catch(e) {
-    container.innerHTML = '<p style="color:#c62828;padding:20px 0;font-size:13px">Could not load wishlist.</p>';
-  }
-}
-
-function closeWishlist() {
-  document.getElementById('wishlistOverlay').classList.remove('open');
-  document.getElementById('wishlistSheet').classList.remove('open');
-  document.body.style.overflow = '';
-}
-
-// Login prompt for non-logged-in users trying to wish
-function openLoginPrompt() {
-  document.getElementById('loginPromptOverlay').classList.add('open');
-  document.getElementById('loginPromptPopup').classList.add('open');
-}
-function closeLoginPrompt() {
-  document.getElementById('loginPromptOverlay').classList.remove('open');
-  document.getElementById('loginPromptPopup').classList.remove('open');
 }
 
 // ══════════════════════════════════════════════════════════════════════════
@@ -487,7 +413,6 @@ function injectCard(p) {
       <img src="${p.image}" alt="${p.name}" loading="lazy" class="card-img"/>
       <div class="card-overlay"></div>
       <div class="new-badge">New</div>
-      <button class="wish-btn" data-id="${p.id}" onclick="toggleWish(event,${p.id})">♡</button>
       ${IS_ADMIN ? `
       <div class="admin-card-btns">
         <button class="sold-toggle-btn" onclick="toggleSoldOut(event,${p.id},this)">Mark Sold Out</button>
@@ -552,10 +477,10 @@ async function deleteProduct(e, pid) {
     }
   }
 }
+
 // ══════════════════════════════════════════════════════════════════════════
 //  CATEGORY MANAGER
 // ══════════════════════════════════════════════════════════════════════════
-
 async function openCatManager() {
   await loadCatManagerList();
   document.getElementById('catManagerOverlay').classList.add('open');
@@ -577,10 +502,12 @@ async function loadCatManagerList() {
     list.innerHTML = '<p style="color:var(--brown-lite);font-size:13px;padding:8px 0">No categories yet.</p>';
     return;
   }
-  list.innerHTML = cats.map(function(c) {
-    return '<div class="cat-manager-item"><span>' + c.name + '</span>' +
-           '<button class="cat-manager-del" onclick="deleteCatFromManager(' + c.id + ',\'' + c.name + '\')">Remove</button></div>';
-  }).join('');
+  list.innerHTML = cats.map(c =>
+    `<div class="cat-manager-item">
+      <span>${c.name}</span>
+      <button class="cat-manager-del" onclick="deleteCatFromManager(${c.id},'${c.name}')">Remove</button>
+    </div>`
+  ).join('');
 }
 
 async function addCategoryFromManager() {
@@ -588,36 +515,22 @@ async function addCategoryFromManager() {
   const name  = input.value.trim();
   if (!name) { alert('Please enter a category name.'); return; }
   const res = await fetch('/admin/categories/add', {
-    method:  'POST',
-    headers: { 'Content-Type': 'application/json' },
-    body:    JSON.stringify({ name: name })
+    method: 'POST', headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ name })
   });
-  if (res.ok) {
-    input.value = '';
-    await loadCatManagerList();
-    window.location.reload();
-  } else {
-    const data = await res.json();
-    alert(data.error || 'Could not add category.');
-  }
+  if (res.ok) { input.value = ''; await loadCatManagerList(); window.location.reload(); }
+  else { const d = await res.json(); alert(d.error || 'Could not add.'); }
 }
 
 async function deleteCatFromManager(id, name) {
-  if (!confirm('Remove "' + name + '" from categories?')) return;
-  const res = await fetch('/admin/categories/delete/' + id, { method: 'DELETE' });
-  if (res.ok) {
-    await loadCatManagerList();
-    window.location.reload();
-  }
+  if (!confirm(`Remove "${name}" from categories?`)) return;
+  const res = await fetch(`/admin/categories/delete/${id}`, { method: 'DELETE' });
+  if (res.ok) { await loadCatManagerList(); window.location.reload(); }
 }
 
-document.addEventListener('DOMContentLoaded', function() {
+document.addEventListener('DOMContentLoaded', () => {
   const field = document.getElementById('newCatInput');
-  if (field) {
-    field.addEventListener('keydown', function(e) {
-      if (e.key === 'Enter') addCategoryFromManager();
-    });
-  }
+  if (field) field.addEventListener('keydown', e => { if (e.key === 'Enter') addCategoryFromManager(); });
 });
 
 // ══════════════════════════════════════════════════════════════════════════
@@ -625,4 +538,4 @@ document.addEventListener('DOMContentLoaded', function() {
 // ══════════════════════════════════════════════════════════════════════════
 function fmt(n) {
   return Number(n).toLocaleString('en-NG', { minimumFractionDigits: 0 });
-}
+     }
